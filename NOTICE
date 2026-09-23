@@ -1,0 +1,41 @@
+S-UI Node
+Copyright (C) 2026 SONIX
+SPDX-License-Identifier: GPL-3.0-only
+
+S-UI Node is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 3 as published by the
+Free Software Foundation.
+
+S-UI Node is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for
+more details.
+
+You should have received a copy of the GNU General Public License along
+with this program. If not, see https://www.gnu.org/licenses/.
+
+Upstream acknowledgments
+------------------------
+s-ui panel: alireza0 and contributors
+https://github.com/alireza0/s-ui
+
+s-ui frontend: alireza0 and contributors
+https://github.com/alireza0/s-ui-frontend
+
+S-UI Node is an independent management client; these acknowledgments do not
+imply endorsement. The panel and frontend reference sources have their own
+GPLv3 license files. Preserve any applicable upstream notices when copying
+or distributing their code.
+
+Dependencies remain subject to their respective licenses and copyright
+notices. Their declarations are in app/build.gradle.kts and
+gradle/libs.versions.toml. This acknowledgment is not a complete inventory
+of dependency licenses and adds no restrictions to GPLv3.
+
+GitHub logo
+-----------
+Vector sourced from Simple Icons (CC0):
+https://github.com/simple-icons/simple-icons/blob/develop/icons/github.svg
+https://github.com/simple-icons/simple-icons/blob/develop/LICENSE.md
+GitHub and its logo are trademarks of GitHub, Inc. The mark identifies a link
+to the developer's GitHub profile; no endorsement is implied.

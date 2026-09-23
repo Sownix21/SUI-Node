@@ -1,0 +1,36 @@
+# Generated build/IDE state (all modules)
+.gradle/
+.kotlin/
+.idea/
+*.iml
+**/build/
+.externalNativeBuild/
+.cxx/
+captures/
+local.properties
+.DS_Store
+Thumbs.db
+__pycache__/
+*.py[cod]
+
+# Local credentials, signing material and panel data. Never publish these.
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pfx
+*.pem
+*.key
+keystore.properties
+signing.properties
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+*.sqlite-*
+*.apk
+*.aab
+*.apks
+*.log

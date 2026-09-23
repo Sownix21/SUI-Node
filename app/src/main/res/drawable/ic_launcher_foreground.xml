@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <!-- SONIX Switchline: connected panel rails form an S; citron marks the active panel. -->
+    <path android:pathData="M72,36H47C28,36 28,54 47,54H61C80,54 80,72 61,72H36"
+        android:fillColor="@android:color/transparent" android:strokeColor="#164E50" android:strokeWidth="12" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M54,54H61C80,54 80,72 61,72H36"
+        android:fillColor="@android:color/transparent" android:strokeColor="#438681" android:strokeWidth="12" android:strokeLineCap="round" android:strokeLineJoin="round"/>
+    <path android:pathData="M53,49L58,59" android:fillColor="@android:color/transparent" android:strokeColor="#A6CFC1" android:strokeWidth="2"/>
+    <path android:pathData="M66,36a6,6 0,1 0,12 0a6,6 0,1 0,-12 0" android:fillColor="#D2EC90"/>
+    <path android:pathData="M70,36a2,2 0,1 0,4 0a2,2 0,1 0,-4 0" android:fillColor="#164E50"/>
+</vector>

@@ -1,0 +1,30 @@
+name: Android verification
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android SDK platform
+        run: sdkmanager 'platforms;android-36.1' 'build-tools;36.0.0'
+      - name: Test, lint and build (no production signing secrets)
+        run: bash gradlew testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease --no-daemon --max-workers=2

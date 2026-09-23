@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 108 108">
+  <title>SONIX Switchline — S-UI Node</title>
+  <desc>A continuous S connects two panel rails. A citron node marks the active panel.</desc>
+  <rect width="108" height="108" rx="28" fill="#e6efe7"/>
+  <path d="M72 36H47C28 36 28 54 47 54H61C80 54 80 72 61 72H36" fill="none" stroke="#164e50" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M54 54H61C80 54 80 72 61 72H36" fill="none" stroke="#438681" stroke-width="12" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M53 49L58 59" stroke="#a6cfc1" stroke-width="2"/>
+  <circle cx="72" cy="36" r="6" fill="#d2ec90"/>
+  <circle cx="72" cy="36" r="2" fill="#164e50"/>
+</svg>
