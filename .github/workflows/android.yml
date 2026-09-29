@@ -29,8 +29,5 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Install Android SDK platform
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
-
       - name: Test, lint and build (no production signing secrets)
         run: bash gradlew testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease --no-daemon --max-workers=2
