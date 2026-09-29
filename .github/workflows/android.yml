@@ -26,8 +26,5 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
       - name: Test, lint and build (no production signing secrets)
         run: bash gradlew testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease --no-daemon --max-workers=2
