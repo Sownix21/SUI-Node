@@ -28,13 +28,18 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Set up Android SDK
+      - name: Set up Android SDK tools
         uses: android-actions/setup-android@v4
         with:
-          packages: |
-            platform-tools
-            platforms;android-36.1
-            build-tools;36.0.0
+          packages: ""
+
+      - name: Install required Android SDK packages
+        shell: bash
+        run: |
+          sdkmanager \
+            "platform-tools" \
+            "platforms;android-36.1" \
+            "build-tools;36.0.0"
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
