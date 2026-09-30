@@ -2,7 +2,7 @@
 # Run from any directory: powershell -File tools/export-source.ps1
 $ErrorActionPreference = 'Stop'
 $nodeRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
-$nodeFiles = @('README.md', 'LICENSE', 'NOTICE', 'CONTRIBUTING.md', 'SECURITY.md',
+$nodeFiles = @('README.md', 'README.fa.md', 'LICENSE', 'NOTICE', 'SECURITY.md',
     '.gitignore', '.gitattributes', '.env.example', 'build.gradle.kts',
     'settings.gradle.kts', 'gradle.properties', 'gradlew', 'gradlew.bat',
     'app/build.gradle.kts', 'app/proguard-rules.pro', 'app/.gitignore')

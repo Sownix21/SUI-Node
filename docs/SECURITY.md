@@ -29,18 +29,28 @@ ordinary captures. It is not protection against root, compromised firmware or an
 debuggable process. This debug APK is for testing, not a production-security certification.
 Release distribution requires the owner's signing key and a non-debuggable release build.
 
-## Optional app PIN and local summaries
+## PIN-first app lock and local summaries
 
-An app-specific PIN of 8–32 ASCII digits can unlock alongside Android biometric/device
-authentication. It is not the Android screen-lock PIN. A fresh 128-bit salt and
+App lock is optional but requires an app-specific PIN of 8–32 digits before biometric
+unlock can be enabled. Persian/Arabic digit input is normalized to ASCII before verification.
+It is not the Android screen-lock PIN. A fresh 128-bit salt and
 PBKDF2-HMAC-SHA256 with 600,000 iterations produce a 256-bit verifier; comparisons are
 constant-time. The verifier and persistent failure counter live in a separate encrypted
 Keystore vault, not plaintext preferences. Cryptographic work runs off the UI thread.
 After five failed attempts, increasing delays start at 30 seconds and cap at 30 minutes.
 The delay uses the device wall clock; clock manipulation, root or a modified debug process
 is outside this protection. Setting a PIN enables app lock. Changing/removing an existing
-PIN requires it; Android authentication remains an alternative unlock route, not a PIN
-reset mechanism. A short numeric PIN is not equivalent to a high-entropy password.
+PIN and changing the lock switch require the PIN. Enabling biometrics additionally requires
+an Android BIOMETRIC_STRONG authentication. The PIN remains available if biometrics fail.
+Removing the PIN durably disables dependent locks first; it does not remove panel profiles.
+There is no biometric PIN-reset mechanism. A short numeric PIN is not equivalent to a
+high-entropy password.
+
+Biometric-only older installations use their previous Android authentication solely to
+authorize PIN setup, not to open profiles. Normal unlock never accepts Android device
+credentials as a substitute for the app PIN. Unreadable PIN storage fails closed. After
+PIN-first setup, a missing PIN record cannot re-enable the legacy migration path. The
+lock page scrolls with the keyboard, and migration authorization is cleared on backgrounding.
 
 Panel memos, provider/group labels, VPS quotas and billing notes use the profile vault.
 Offline overview caching is disabled per panel by default. When opted in, it stores a

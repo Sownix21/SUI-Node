@@ -25,6 +25,16 @@ data class MonitorConfig(
     val showNames: Boolean = false,
     val retentionDays: Int = 30,
 ) {
+    /** Avoid full client-detail batches when only VPS/server/reminder monitoring is enabled. */
+    fun reads(vpsEnabled: Boolean): MonitorReads {
+        val clients = expiry || quota
+        val status = when {
+            vpsEnabled -> "sbd,net,sys"
+            coreStopped || offline || !clients -> "sbd"
+            else -> null
+        }
+        return MonitorReads(clients, status)
+    }
     fun toJson() = jo("enabled" to enabled, "panelIds" to jarr(panelIds.toList()),
         "intervalMinutes" to intervalMinutes, "expiry" to expiry, "expiryHours" to expiryHours,
         "quota" to quota, "quotaPercent" to quotaPercent, "includeDisabled" to includeDisabled,
@@ -52,6 +62,8 @@ data class MonitorConfig(
             retentionDays = o.optInt("retentionDays", 30).coerceIn(1, 90))
     }
 }
+
+data class MonitorReads(val clients: Boolean, val statusParts: String?)
 
 data class AlertCandidate(val key: String, val panelId: String, val kind: String, val title: String,
     val detail: String, val fingerprint: String, val severity: Int = 1)
@@ -91,6 +103,15 @@ object ClientHealth {
 
 /** Pure, deterministic alert lifecycle; missing data never resolves a condition. */
 object AlertEngine {
+    /** If Android rejects delivery, keep active alerts eligible for the next check. */
+    fun deliveryFailed(state: JSONObject, attempted: List<JSONObject>) {
+        val active = state.optJSONObject("active") ?: return
+        attempted.filterNot { it.optBoolean("resolved") }.forEach { sent ->
+            val record = active.optJSONObject(sent.optString("key")) ?: return@forEach
+            if (record.optString("fingerprint") == sent.optString("fingerprint") &&
+                record.optLong("lastSent") == sent.optLong("lastSent")) record.put("lastSent", 0L)
+        }
+    }
     /** Removed/unselected panels are no longer active, not falsely reported as recovered. */
     fun pruneScope(state: JSONObject, panelIds: Set<String>, now: Long, config: MonitorConfig) {
         state.optJSONObject("active")?.let { active ->
@@ -103,7 +124,7 @@ object AlertEngine {
         state.put("history", jarr(history.filter { it.optLong("time") >= now - config.retentionDays * 86400L }.takeLast(500)))
     }
     fun update(state: JSONObject, panelId: String, candidates: List<AlertCandidate>, knownKinds: Set<String>,
-        now: Long, config: MonitorConfig, canNotify: Boolean): List<JSONObject> {
+        now: Long, config: MonitorConfig, canNotify: Boolean, silencedKinds: Set<String> = emptySet()): List<JSONObject> {
         val active = state.optJSONObject("active") ?: JSONObject().also { state.put("active", it) }
         val history = state.optJSONArray("history") ?: JSONArray().also { state.put("history", it) }
         val notifications = mutableListOf<JSONObject>()
@@ -115,20 +136,24 @@ object AlertEngine {
                     .put("title", "Resolved: ${previous.optString("title")}")
                 history.put(resolved)
                 // Do not announce recovery for an alert the user was never notified about.
-                if (config.recovery && canNotify && previous.optLong("lastSent") > 0) notifications.add(resolved)
+                if (config.recovery && canNotify && previous.optLong("lastSent") > 0 && previous.optString("kind") !in silencedKinds) notifications.add(resolved)
                 active.remove(key)
             }
         }
         for (c in candidates) {
             val old = active.optJSONObject(c.key)
             val changed = old == null || old.optString("fingerprint") != c.fingerprint || old.optInt("severity") != c.severity
+            val extended = c.kind == "expiry" && old != null &&
+                (c.fingerprint.toLongOrNull() ?: 0) > (old.optString("fingerprint").toLongOrNull() ?: Long.MAX_VALUE)
             val record = jo("key" to c.key, "panelId" to c.panelId, "kind" to c.kind, "title" to c.title,
                 "detail" to c.detail.take(400), "fingerprint" to c.fingerprint, "severity" to c.severity,
                 "time" to (if (changed) now else old!!.optLong("time")), "resolved" to false,
-                "lastSeen" to now, "lastSent" to (if (changed) 0L else old!!.optLong("lastSent")))
+                "lastSeen" to now, "lastSent" to (if (changed && !extended) 0L else old!!.optLong("lastSent")))
+            if (extended) record.put("notBefore", now + config.intervalMinutes * 60)
+            else if (!changed) record.put("notBefore", old?.optLong("notBefore") ?: 0L)
             if (changed) history.put(record.deepCopy())
             val lastSent = record.optLong("lastSent")
-            if (canNotify && (lastSent == 0L || config.repeatHours > 0 && now - lastSent >= config.repeatHours * 3600)) {
+            if (canNotify && now >= record.optLong("notBefore") && (lastSent == 0L || config.repeatHours > 0 && now - lastSent >= config.repeatHours * 3600)) {
                 record.put("lastSent", now)
                 notifications.add(record.deepCopy())
             }

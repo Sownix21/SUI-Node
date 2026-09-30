@@ -42,6 +42,22 @@ class AppPrefs(context: Context) {
         get() = prefs.getBoolean("appLock", false)
         set(v) = prefs.edit().putBoolean("appLock", v).apply()
 
+    var biometricUnlockEnabled: Boolean
+        get() = prefs.getBoolean("biometricUnlock", false)
+        set(v) = prefs.edit().putBoolean("biometricUnlock", v).apply()
+
+    // Once PIN-first security is set up, a missing PIN record must fail closed.
+    var pinFirstLock: Boolean
+        get() = prefs.getBoolean("pinFirstLock", false)
+        set(v) = prefs.edit().putBoolean("pinFirstLock", v).apply()
+
+    /** Call off the UI thread. Persist dependencies together before deleting a PIN record. */
+    fun setLockState(enabled: Boolean, biometric: Boolean = biometricUnlockEnabled) {
+        check(prefs.edit().putBoolean("appLock", enabled)
+            .putBoolean("biometricUnlock", enabled && biometric)
+            .putBoolean("pinFirstLock", true).commit()) { "Unable to save app-lock settings" }
+    }
+
     var autoLock: AutoLock
         get() = runCatching { AutoLock.valueOf(prefs.getString("autoLock", AutoLock.IMMEDIATE.name)!!) }.getOrDefault(AutoLock.IMMEDIATE)
         set(v) = prefs.edit().putString("autoLock", v.name).apply()

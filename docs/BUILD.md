@@ -1,6 +1,6 @@
 # Developer build and release guide
 
-These instructions are for contributors and maintainers, not app users.
+These instructions are for maintainers, not app users.
 
 ## Build from source
 
@@ -100,12 +100,12 @@ When reviewing an updated backend:
 python tools/check_panel_contract.py ../s-ui-main
 ~~~
 
+Pass `--frontend <path-to-frontend>` to also compare inbound, outbound and DNS type selectors.
 This read-only check detects drift in APIv2 GET/POST registries and writable setting keys.
 It intentionally does not claim form or protocol runtime parity.
 
 The GitHub Actions workflow runs tests, lint and unsigned builds without production
 credentials. Its hosted run must pass after upload; local success is not a hosted CI result.
-See [Contributing](../CONTRIBUTING.md).
 
 ## Repository layout
 

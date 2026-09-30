@@ -9,7 +9,7 @@
 - Rename the standalone project and namespace to S-UI Node / com.sonix21.suinode.
 
 - Prepare the standalone GitHub source tree: GPLv3/SONIX notices, detailed README,
-  release/contribution/security guidance, unsigned CI and source-only export tooling.
+  release/security guidance, unsigned CI and source-only export tooling.
 - Remove unused HTTP-logging, ViewModel Compose and preview dependencies, AI Studio
   scaffold metadata and irrelevant build settings. Keep legacy vault-migration dependencies.
 - Fail incomplete release signing configuration explicitly; retain standard debug signing.

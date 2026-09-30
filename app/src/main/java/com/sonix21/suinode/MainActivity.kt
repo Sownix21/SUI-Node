@@ -78,14 +78,17 @@ class MainActivity : FragmentActivity() {
     override fun onSaveInstanceState(outState: Bundle) { documents.saveState(outState); super.onSaveInstanceState(outState) }
 }
 
-/** Helper to run a biometric / device-credential gate. */
-fun runBiometricGate(activity: FragmentActivity, onSuccess: () -> Unit, onError: (String) -> Unit) {
+/** Device credentials are accepted only to migrate an existing biometric-only lock. */
+fun runBiometricGate(activity: FragmentActivity, onSuccess: () -> Unit, onError: (String) -> Unit,
+    legacyMigration: Boolean = false) {
     val manager = BiometricManager.from(activity)
-    val can = manager.canAuthenticate(
+    val authenticators = if (legacyMigration)
         BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-    )
+        else BiometricManager.Authenticators.BIOMETRIC_STRONG
+    val can = manager.canAuthenticate(authenticators)
     if (can != BiometricManager.BIOMETRIC_SUCCESS) {
-        onError("No biometrics or device credential available")
+        onError(if (legacyMigration) "Authenticate with the Android security method used by your previous app lock"
+            else "Strong biometrics are unavailable. Use your app PIN or enroll a supported biometric in Android settings.")
         return
     }
     val executor = ContextCompat.getMainExecutor(activity)
@@ -93,12 +96,10 @@ fun runBiometricGate(activity: FragmentActivity, onSuccess: () -> Unit, onError:
         override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) { onSuccess() }
         override fun onAuthenticationError(code: Int, msg: CharSequence) { onError(msg.toString()) }
     })
-    val info = BiometricPrompt.PromptInfo.Builder()
+    val builder = BiometricPrompt.PromptInfo.Builder()
         .setTitle("S-UI Node")
-        .setSubtitle("Unlock to continue")
-        .setAllowedAuthenticators(
-            BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
-        )
-        .build()
-    prompt.authenticate(info)
+        .setSubtitle(if (legacyMigration) "Verify your existing lock before setting up an app PIN" else "Use biometrics or return to your app PIN")
+        .setAllowedAuthenticators(authenticators)
+    if (!legacyMigration) builder.setNegativeButtonText("Use app PIN")
+    prompt.authenticate(builder.build())
 }

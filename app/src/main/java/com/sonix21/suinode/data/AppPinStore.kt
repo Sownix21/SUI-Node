@@ -44,9 +44,11 @@ class AppPinStore(context: Context) {
             write(PinVerifier.create(pin))
         } finally { pin.fill('\u0000'); current.fill('\u0000') }
     }
-    fun remove(current: CharArray) = synchronized(lock) {
+    fun remove(current: CharArray, onVerified: () -> Unit = {}) = synchronized(lock) {
         try {
             check(verifyInternal(current)) { "Current app PIN is incorrect" }
+            // Disable dependent locks before removing their only recovery method.
+            onVerified()
             write(JSONObject().put("enabled", false))
         } finally { current.fill('\u0000') }
     }

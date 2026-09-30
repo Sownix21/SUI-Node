@@ -53,14 +53,17 @@ object MonitoringScheduler {
             context.getSystemService(NotificationManager::class.java).getNotificationChannel(CHANNEL)?.importance != NotificationManager.IMPORTANCE_NONE
     }
     fun createChannel(context: Context) {
+        // Older builds used one untagged summary. New alerts are isolated per panel.
+        NotificationManagerCompat.from(context).cancel(1001)
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
             NotificationChannel(CHANNEL, "Panel and client alerts", NotificationManager.IMPORTANCE_DEFAULT).apply {
                 description = "Client expiry/quota, VPS traffic/renewal, availability and core-status alerts"
                 lockscreenVisibility = NotificationCompat.VISIBILITY_PRIVATE
             })
     }
-    fun notify(context: Context, alerts: List<JSONObject>, showNames: Boolean) {
-        if (alerts.isEmpty() || !deliveryAllowed(context)) return
+    fun notify(context: Context, alerts: List<JSONObject>, showNames: Boolean, panelId: String): Boolean {
+        if (alerts.isEmpty()) return true
+        if (!deliveryAllowed(context)) return false
         val pending = PendingIntent.getActivity(context, 1001, Intent(context, MainActivity::class.java),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
         val title = if (alerts.size == 1) alerts[0].optString("title") else "${alerts.size} S-UI Node alerts"
@@ -72,7 +75,7 @@ object MonitoringScheduler {
             .setContentTitle(title).setContentText(detail).setStyle(NotificationCompat.BigTextStyle().bigText(detail))
             .setContentIntent(pending).setAutoCancel(true).setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .setPublicVersion(public).setCategory(NotificationCompat.CATEGORY_STATUS).build()
-        try { NotificationManagerCompat.from(context).notify(1001, notification) } catch (_: SecurityException) { }
+        return try { NotificationManagerCompat.from(context).notify(panelId, 1001, notification); true } catch (_: SecurityException) { false }
     }
     private const val CHANNEL = "sui_node_monitoring_v1"
 }
@@ -93,13 +96,14 @@ class MonitorWorker(context: Context, parameters: WorkerParameters) : CoroutineW
             // Oldest checks first so a large/slow fleet cannot starve panels at the end.
             val deadline = android.os.SystemClock.elapsedRealtime() + 7 * 60_000L
             MonitoringScheduler.createChannel(applicationContext)
-            val notifications = mutableListOf<JSONObject>()
             val connectivity = applicationContext.getSystemService(android.net.ConnectivityManager::class.java)
             val networkAvailable = connectivity.getNetworkCapabilities(connectivity.activeNetwork)
                 ?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
             for (panel in panels) {
                 if (isStopped || !MonitoringScheduler.enabled(applicationContext) || android.os.SystemClock.elapsedRealtime() >= deadline) break
                 val now = System.currentTimeMillis() / 1000
+                val clientVersion = ClientAlertFreshness.version(panel.id)
+                val notifications = mutableListOf<JSONObject>()
                 val api = SuiClient(panel)
                 val candidates = mutableListOf<AlertCandidate>()
                 val known = mutableSetOf<String>()
@@ -107,23 +111,35 @@ class MonitorWorker(context: Context, parameters: WorkerParameters) : CoroutineW
                 var rejectedToken = false
                 val vpsConfig = store.vpsConfig(panel.id)
                 val renewal = store.vpsRenewal(panel.id)
+                val reads = config.reads(vpsConfig.enabled)
+                val silenced = buildSet {
+                    if (!config.expiry) add("expiry")
+                    if (!config.quota) add("quota")
+                    if (!config.coreStopped) add("core")
+                    if (!config.offline) add("offline")
+                    if (!vpsConfig.enabled) add("vps")
+                    if (!renewal.enabled) add("billing")
+                }
+                known += silenced
                 var vpsStatus: JSONObject? = null
                 var note = "Checked"
                 try {
-                    if (!networkAvailable) throw java.io.IOException("Device offline")
-                    val list = api.fullClients()
-                    connected = true
-                    candidates += ClientHealth.alerts(panel.id, panel.name, list, now, config)
-                    known += setOf("expiry", "quota", "offline", "auth")
+                    if (reads.clients) {
+                        if (!networkAvailable) throw java.io.IOException("Device offline")
+                        val list = api.fullClients()
+                        connected = true
+                        candidates += ClientHealth.alerts(panel.id, panel.name, list, now, config)
+                        known += setOf("expiry", "quota", "offline", "auth")
+                    }
                 } catch (e: CancellationException) { api.logout(); throw e }
                 catch (_: RejectedApiToken) { rejectedToken = true; note = ApiTokenError.MESSAGE }
                 catch (_: Exception) { note = if (networkAvailable) "Client data unavailable" else "Waiting for this device's network" }
                 try {
-                    if (networkAvailable && (config.coreStopped || vpsConfig.enabled)) {
-                        val status = api.get("status", mapOf("r" to if (vpsConfig.enabled) "sbd,net,sys" else "sbd"))
+                    if (networkAvailable && !rejectedToken && reads.statusParts != null) {
+                        val status = api.get("status", mapOf("r" to reads.statusParts))
                         if (!status.success && ApiTokenError.matches(status.msg)) throw RejectedApiToken()
                         if (status.success) {
-                            if (!connected) note = "Server checked; client data unavailable"
+                            if (!connected) note = if (reads.clients) "Server checked; client data unavailable" else "Server checked"
                             connected = true; known += setOf("offline", "auth")
                         }
                         if (status.success && vpsConfig.enabled) vpsStatus = status.objObj()
@@ -134,12 +150,13 @@ class MonitorWorker(context: Context, parameters: WorkerParameters) : CoroutineW
                                 "${panel.name} · panel reachable, core reports stopped", "stopped", 2)
                             if (status.objObj()?.optJSONObject("sbd")?.optBoolean("maintenance") == true) note = "Core stopped intentionally for maintenance"
                         } else if (config.coreStopped) note = if (connected) "Panel checked; core status unavailable" else "Client and core data unavailable"
-                    } else if (!config.coreStopped) known += "core"
+                    } else if (!networkAvailable) note = "Waiting for this device's network; local reminders checked"
                 } catch (e: CancellationException) { throw e }
                 catch (_: RejectedApiToken) { rejectedToken = true; note = ApiTokenError.MESSAGE }
                 catch (_: Exception) { note = if (connected) "Clients checked; core status unavailable" else "APIv2 unavailable from this device" }
                 finally { api.logout() }
-                store.updateMonitorState { state ->
+                ClientAlertFreshness.ifCurrent(panel.id, clientVersion) {
+                  store.updateMonitorState { state ->
                     val checks = state.optJSONObject("checks") ?: JSONObject().also { state.put("checks", it) }
                     val previousFailures = checks.optJSONObject(panel.id)?.optInt("failures") ?: 0
                     val failures = if (connected) 0 else previousFailures + if (networkAvailable) 1 else 0
@@ -167,11 +184,14 @@ class MonitorWorker(context: Context, parameters: WorkerParameters) : CoroutineW
                     }
                     if (!config.offline) known += "offline"
                     val delivery = !config.isQuiet(now) && MonitoringScheduler.deliveryAllowed(applicationContext)
-                    notifications += AlertEngine.update(state, panel.id, candidates, known, now, config, delivery)
+                    notifications += AlertEngine.update(state, panel.id, candidates, known, now, config, delivery, silenced)
                     state.put("lastCheck", now)
+                  }
+                  val delivered = MonitoringScheduler.enabled(applicationContext) &&
+                      MonitoringScheduler.notify(applicationContext, notifications, config.showNames, panel.id)
+                  if (!delivered) store.updateMonitorState { AlertEngine.deliveryFailed(it, notifications) }
                 }
             }
-            if (MonitoringScheduler.enabled(applicationContext)) MonitoringScheduler.notify(applicationContext, notifications, config.showNames)
             Result.success()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) { Result.retry() }

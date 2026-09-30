@@ -19,6 +19,8 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -142,13 +144,12 @@ fun AppRoot(requestThemeRefresh: () -> Unit) {
 
 @Composable
 private fun LockGate(onUnlocked: () -> Unit, context: android.content.Context) {
-    val activity = androidx.activity.compose.LocalActivity.current as? FragmentActivity
     val g = LocalGlass.current
     Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Column(Modifier.padding(horizontal = 24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
             StatusDot(g.violet, 14.dp)
             androidx.compose.material3.Text("Locked", color = g.textDim, fontSize = 15.sp)
-            com.sonix21.suinode.ui.screens.settings.PinUnlockPanel(onUnlocked) { activity?.let { com.sonix21.suinode.runBiometricGate(it, onUnlocked, { error -> com.sonix21.suinode.ui.glass.ToastBus.show(error) }) } }
+            com.sonix21.suinode.ui.screens.settings.PinUnlockPanel(onUnlocked)
             com.sonix21.suinode.ui.glass.GhostButton("Device security settings") {
                 context.startActivity(android.content.Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS))
             }

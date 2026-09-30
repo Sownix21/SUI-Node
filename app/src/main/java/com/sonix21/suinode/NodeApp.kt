@@ -12,6 +12,10 @@ class NodeApp : Application() {
         com.sonix21.suinode.data.SaveGuard.init(this)
         com.sonix21.suinode.data.OfflineOverview.init(this)
         Panels.init(this)
+        com.sonix21.suinode.core.ClientAlertFreshness.onChanged = { panelId ->
+            androidx.core.app.NotificationManagerCompat.from(this).cancel(panelId, 1001)
+            com.sonix21.suinode.data.MonitoringScheduler.checkNow(this)
+        }
         com.sonix21.suinode.data.MonitoringScheduler.reconcile(this)
     }
 }

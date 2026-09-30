@@ -100,7 +100,7 @@ fun ClientBulkAddScreen(nav: NavController) {
     val descTokens = remember { mutableStateListOf<String>() }
     var group by remember { mutableStateOf("") }
     var volumeGb by remember { mutableStateOf(0L) }
-    var expiryText by remember { mutableStateOf("") }
+    var expiryUnix by remember { mutableStateOf(0L) }
     var delayStart by remember { mutableStateOf(false) }
     var autoReset by remember { mutableStateOf(false) }
     var resetDays by remember { mutableStateOf(1L) }
@@ -112,7 +112,7 @@ fun ClientBulkAddScreen(nav: NavController) {
 
     PageScaffold(title = "Bulk Add Clients", nav = nav, busy = runner.busy,
         draftValue = { jo("count" to count, "names" to jarr(nameTokens.toList()), "descriptions" to jarr(descTokens.toList()),
-            "group" to group, "volume" to volumeGb, "expiry" to expiryText, "delay" to delayStart,
+            "group" to group, "volume" to volumeGb, "expiry" to expiryUnix, "delay" to delayStart,
             "reset" to autoReset, "days" to resetDays, "inbounds" to jarr(inbounds.sorted())) }, primaryAction = {
             HeaderPrimaryAction("Create $count clients", loading = runner.busy, onClick = {
                 val n = count.coerceIn(1, 100).toInt()
@@ -120,7 +120,6 @@ fun ClientBulkAddScreen(nav: NavController) {
                     ToastBus.show("pattern needs at least one random/order token"); return@HeaderPrimaryAction
                 }
                 runner.go {
-                    val expiryUnix = Fmt.parseDateTimeToUnix(expiryText.trim()) ?: 0L
                     val clients = JSONArray()
                     val names = mutableListOf<String>()
                     for (i in 0 until n) {
@@ -162,9 +161,7 @@ fun ClientBulkAddScreen(nav: NavController) {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         GlassTextField("Group", group, { group = it })
                         NumberField("Volume", volumeGb.takeIf { it > 0 }, suffix = "GiB", hint = "unlimited", onChange = { volumeGb = it ?: 0 })
-                        GlassTextField("Expiry (yyyy-MM-dd HH:mm)", expiryText, {
-                            expiryText = it
-                        }, hint = "unlimited")
+                        if (!delayStart || autoReset) com.sonix21.suinode.ui.screens.shared.DateTimeField("Expiry", expiryUnix) { expiryUnix = it }
                         SwitchRow("Delay start", delayStart, {
                             delayStart = it
                             if (it) resetDays = 1

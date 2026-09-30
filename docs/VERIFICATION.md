@@ -1,6 +1,78 @@
 # APIv2 alignment and verification
 
-## Source of truth
+## Current verification — 2.4 / September 30, 2026
+
+Version **2.4 (6)** targets the supplied **s-ui 1.6.3** backend and frontend
+`f859e16953cd733293618f626cc19b8466e00fd3`; its backend declares sing-box **1.14.1**.
+See [the compatibility review](PANEL-1.6.3.md) for the changed API contracts and forms.
+The older checks below are retained as history, not evidence that every earlier acceptance
+case was repeated for this release.
+
+### Automated results
+
+- `testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease`
+  completed successfully with the checked-in Gradle wrapper.
+- **119 JVM tests passed**, with zero failures/errors across 19 suites.
+- Debug and release lint each reported **0 errors, 36 warnings**. Warnings concern newer
+  dependency/tool versions, KTX/version-catalog suggestions, and application-context-backed
+  PanelStore singleton references. They are not hidden by a new lint baseline.
+- APIv2 registry comparison passed: **19 GET actions, 10 POST actions, 27 writable settings**.
+  Frontend selectors matched **19 inbound, 19 outbound and 13 DNS types**. This checks the
+  registries, not every configuration or protocol at runtime.
+- The release APK reports `com.sonix21.suinode`, version 2.4, `debuggable=false`;
+  R8 minification/resource shrinking completed. A test-signed copy passed v2/v3 signature
+  verification and 16 KB ZIP-alignment checks.
+
+### Physical-device results
+
+The endpoint-card layout was subsequently adjusted after the owner reported broken-word
+wrapping in the latency status. Status and actions now occupy separate rows, and actions
+can wrap on narrow screens. Per the owner's request, that layout-only follow-up was not
+installed or tested on the phone; the device results below describe the preceding build.
+
+Mi 9T Pro / Android 11, after the owner authorized USB debugging. The installed 2.3 app's
+certificate matched the local standard Android debug key. Updated in place to debug 2.4,
+then to a **debug-key-signed copy of the optimized release**. No uninstall, data clearing,
+credential extraction or app-lock bypass was performed. The saved profile still connected.
+
+On the optimized build:
+
+- Overview, Clients and Inbounds loaded. Existing client and inbound editors opened from
+  their lists; neither was saved. The Services list displayed its empty state.
+- Tools → Live sessions returned real connection rows. Switching the resource selector to
+  Endpoint completed another read successfully. No disconnect action was pressed.
+- In a new, unsaved TLS template, enabling fragmentation revealed record-fragmentation and
+  fallback-delay controls; disabling it hid them. Enabling mutual TLS revealed certificate
+  source, client-authentication policy and certificate-path controls.
+- Leaving that modified template prompted for confirmation; **Discard** removed the draft.
+- Panel settings loaded and displayed maintenance as off. The app was returned to Overview;
+  the final app-process AndroidRuntime check found **zero error/crash entries**.
+
+These are bounded read/navigation checks, not proof of submitted-write correctness. No
+live configuration save, disconnect, restart, maintenance change, restore or probe was
+performed. App-process AndroidRuntime logs were checked for crashes during this smoke test.
+The phone's test-signed build is **not a production-signed distributable**.
+
+### Current artifact hashes
+
+| Artifact | SHA-256 |
+| --- | --- |
+| Debug APK | `c30c368984bbef255cdfcd5fcea7eb5fd1a7cacd703ac64c4db1cd94a917219a` |
+| Unsigned release APK | `c8c233db6fbd4c8d3f766ac2da9702fdaf1f910776134ce853e49d0906b573bd` |
+| Unsigned release AAB | `5f691059dbdb6d40d27731894c15115fb105da08436a5d76e472ad549b19e297` |
+
+### Still required before a production release
+
+Use the owner's production signing identity and complete the disposable-panel acceptance
+matrix in [RELEASE-CHECKLIST](RELEASE-CHECKLIST.md), including create/edit/delete and real
+connections for the supported protocols. Long-running background/OEM behavior, the full
+Android-version matrix and hosted GitHub CI were not revalidated here. The earlier live
+panel full-backup SQL-variable limit must not be considered fixed merely because the app
+builds. Release-build-ready source is not a claim of zero bugs or universal compatibility.
+
+## Historical verification — 2.3 and earlier
+
+### Earlier source of truth
 
 The bundled `s-ui-main/api/apiV2Handler.go`, `apiService.go`, service/model implementations,
 and `s-ui-frontend-ab6ed5148c02d311b19e1fe17e85e0e23bc25f88` were used to check wire formats
@@ -103,7 +175,7 @@ Android installation; profiles must be entered by the owner, not extracted from 
 The owner added the live profile used for the final checks. No existing app was uninstalled
 or had its data cleared.
 
-Latest artifact SHA-256 values:
+Historical September 13 artifact SHA-256 values:
 
 | Artifact | SHA-256 |
 | --- | --- |

@@ -124,12 +124,11 @@ fun PanelSettingsScreen(nav: NavController) {
 @Composable
 fun AppSettingsScreen(nav: NavController, requestThemeRefresh: () -> Unit) {
     val activity = androidx.activity.compose.LocalActivity.current as? androidx.fragment.app.FragmentActivity
-    var theme by remember { mutableStateOf(APP.prefs.theme) }; var lang by remember { mutableStateOf(APP.prefs.lang) }; var refresh by remember { mutableStateOf(APP.prefs.refreshIntervalSec.toLong()) }; var lock by remember { mutableStateOf(APP.prefs.appLockEnabled) }
+    var theme by remember { mutableStateOf(APP.prefs.theme) }; var lang by remember { mutableStateOf(APP.prefs.lang) }; var refresh by remember { mutableStateOf(APP.prefs.refreshIntervalSec.toLong()) }
     var screenProtection by remember { mutableStateOf(APP.prefs.blockScreenCapture) }
     var reviewChanges by remember { mutableStateOf(APP.prefs.reviewChanges) }
     var recoverSaves by remember { mutableStateOf(APP.prefs.recoverSaves) }
     var wallpaperColors by remember { mutableStateOf(APP.prefs.dynamicColors) }
-    var lockAfter by remember { mutableStateOf(APP.prefs.autoLock) }
     PageScaffold("App settings", nav, subtitle = "Local preferences for this device") {
         Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             GlassCard(contentPadding = 14.dp) { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -150,20 +149,9 @@ fun AppSettingsScreen(nav: NavController, requestThemeRefresh: () -> Unit) {
                     requestThemeRefresh()
                 }, subtitle = "Recommended for privacy. Turning this off permits screen capture of sensitive panel data.")
                 NumberField("Refresh interval", refresh, suffix = "seconds", onChange = { refresh = (it ?: 4).coerceIn(2,60); APP.prefs.refreshIntervalSec = refresh.toInt() })
-                SwitchRow("App lock", lock, { enable ->
-                    if (!enable) { lock = false; APP.prefs.appLockEnabled = false }
-                    else if (activity != null) com.sonix21.suinode.runBiometricGate(activity,
-                        onSuccess = { lock = true; APP.prefs.appLockEnabled = true },
-                        onError = { ToastBus.show(it) })
-                }, subtitle = "Confirm biometrics or device credential before enabling")
-                if (lock) {
-                    SelectField("Lock after leaving", lockAfter, AutoLock.entries.map { Opt(it.label, it) }, clearable = false,
-                        onChange = { policy -> if (policy != null) { lockAfter = policy; APP.prefs.autoLock = policy } })
-                    Text("The screen turning off always locks the app. A fresh app process also requires authentication. Timed presets keep this session available briefly while you switch apps.", color = LocalGlass.current.textFaint, fontSize = 11.sp)
-                }
             } }
             val protection by com.sonix21.suinode.data.Panels.protection.collectAsState()
-            AppPinSettings { lock = true; requestThemeRefresh() }
+            AppPinSettings(onChanged = requestThemeRefresh)
             GlassCard(contentPadding = 14.dp) { Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 SectionHeader("Credential security")
                 Text("AES-256-GCM · $protection", color = LocalGlass.current.text, fontSize = 12.sp)

@@ -4,6 +4,7 @@
   <p><strong>Your panels. One Android workspace.</strong></p>
   <p>A Material 3–based glass interface for managing s-ui through APIv2.</p>
   <p>Android 8.0+ · Kotlin / Jetpack Compose · APIv2 only · GPLv3</p>
+  <p>English · <a href="README.fa.md">فارسی</a></p>
   <p><a href="#get-connected">Connect</a> · <a href="docs/VERIFICATION.md">Verification</a> · <a href="https://github.com/Sownix21">SONIX on GitHub</a></p>
 </div>
 
@@ -22,14 +23,14 @@ traffic through a VPN. Android 8.0 or later, a reachable s-ui server and its API
 | Area | What the app provides |
 | --- | --- |
 | Panel workspace | Multiple profiles, switching, groups, favorites, provider memos, local read-only mode and optional encrypted offline summaries |
-| Clients | Search, filters, sorting, complete-record editing, bulk tools, renewal previews, subscription links and QR display |
+| Clients | Search, filters, sorting, complete-record editing, calendar/time expiry pickers, bulk tools, renewal previews, subscription links and QR display |
 | Configuration | Inbounds, outbounds, endpoints, services, TLS templates, certificate providers, routing, DNS and HTTP-client configuration |
 | Conditional editors | Protocol-dependent transport, TLS, multiplexing, listen and nested option controls; structured JSON/Clash subscription settings |
 | Operations | Server/core status, traffic views, logs, database backup/restore and supported restart/maintenance operations |
 | Optional monitoring | Client expiry/quota, panel-unavailable and unexpected-core-stop alerts, recovery notices, quiet hours and encrypted history |
-| Optional VPS tools | Monthly traffic estimates, directional accounting, reset dates/timezones and billing renewal reminders |
+| Optional VPS tools | Monthly traffic estimates, directional accounting, reset day/time/timezone, start-now or next-cycle tracking and billing renewal reminders |
 | Appearance | Light, Dark and true-black AMOLED, accent palettes, optional dynamic colors, glass surfaces, English/Persian interface options |
-| Local protection | Android Keystore vault, biometric/device authentication, optional 8–32 digit app PIN, automatic-lock presets and configurable screenshot/Recents protection |
+| Local protection | Android Keystore vault, optional PIN-first app lock (8–32 digits), optional strong biometrics after PIN setup, automatic-lock presets and configurable screenshot/Recents protection |
 
 Available operations depend on the panel/core version, platform and APIv2 support.
 A visible editor or successful unit test does not prove every configuration runs on every
@@ -76,7 +77,7 @@ Version 2.4 targets the supplied **s-ui 1.6.3** backend and frontend, using APIv
 | Earlier panels | Existing APIv2 features remain available; 1.6.3-only actions report an error when unsupported |
 | Later releases | Require a fresh contract/form review; not automatically certified |
 
-See the [1.6.3 compatibility notes](docs/PANEL-1.6.3.md),
+See [what changed in 2.4](docs/CHANGES-2.4.md), the [1.6.3 compatibility notes](docs/PANEL-1.6.3.md),
 and [APIv2 documentation](https://github.com/alireza0/s-ui/wiki/API-Documentation).
 
 ### Protocol families
@@ -128,6 +129,11 @@ The current evidence and remaining manual checks are in [VERIFICATION](docs/VERI
 
 ## Save safeguards
 
+Client creation, editing and bulk expiry changes use a calendar followed by a time picker.
+Dates use the Gregorian calendar and the phone's timezone; the saved value is Unix time.
+Cancel leaves the draft unchanged. Unlimited expiry is an explicit clear action, not the
+result of an invalid date. First-use activation and automatic-reset controls remain separate.
+
 Optional save review shows a redacted summary before submission. Full records are read
 again to detect intervening changes. Interrupted-save recovery stores encrypted evidence
 and checks server state with GET; it does not blindly retry POST.
@@ -150,6 +156,17 @@ Monitoring starts disabled. Enable it explicitly, select panels and alert types,
 On Android 13+, allow notification permission. The app posts its own notifications;
 it does not request access to other apps' notifications.
 
+Choose the expiry warning window in **days (1–90)** or hours, for example, notify when
+a client has at most 3 days remaining. Choose checks every 15/30 minutes or 1, 2, 3, 4,
+6, 8, 12 or 24 hours. The separate repeat interval controls reminders about a condition
+already reported; 0 means no repeats unless the condition resolves and returns or worsens.
+
+A confirmed in-app client save invalidates an older in-flight monitoring result and clears
+that panel's displayed notification while requesting a fresh check. Extending an expiry
+within the warning window keeps the previous repeat schedule and defers a new warning
+for at least one check interval. Edits made elsewhere are visible after the next successful
+GET. A renewed client may still qualify if its new expiry remains within your chosen window.
+
 Checks use Android WorkManager, with a minimum interval of 15 minutes. Doze, battery saver,
 device lock, loss of connectivity and OEM autostart restrictions can delay them.
 Force-stopping the app prevents work until it is reopened. These are best-effort alerts,
@@ -157,12 +174,21 @@ not an exact scheduler or uptime SLA.
 
 VPS traffic tracking supports combined, receive-only, send-only and separate directional
 limits. It estimates usage from panel counters; provider accounting and missed observations
-may differ. Limits use decimal GB/TB; client quotas use GiB. Configure a baseline, reset
-day and provider timezone.
+may differ. Limits use decimal GB/TB; client quotas use GiB. Configure the monthly reset
+day, hour, minute and provider timezone, then choose **Now** or **At the next billing reset**.
+Now uses the first successful sample and any already-used traffic you enter. Next cycle
+waits for the saved reset date/time and starts from zero at the first successful sample
+after it. Traffic between the reset and that sample cannot be reconstructed precisely.
+Saving other options does not keep postponing an already scheduled start.
 
 VPS billing reminders store a due date, period, optional price/currency and warning window
 locally. They neither contact your provider nor make payments. Dates advance only when
 you explicitly mark a renewal and save it.
+
+The quota screen previews the next reset date. Changing an existing billing calendar
+requires correcting already-used traffic or explicitly starting at the next cycle. Persian/Arabic
+digits are accepted in PINs, quota amounts and renewal-date inputs; renewal dates use the
+Gregorian calendar. Refreshing monitoring status preserves unsaved option changes.
 
 Read [Monitoring and renewals](docs/MONITORING.md) before relying on these features.
 
@@ -172,8 +198,17 @@ Profiles, tokens and sensitive local state use an authenticated AES-256-GCM vaul
 by non-exportable Android Keystore keys. StrongBox is preferred where available; actual
 hardware protection depends on the device. Vault files are excluded from Android backup.
 
-An optional app PIN is separate from the phone's screen-lock PIN. App lock protects the UI;
-choose Immediate, 1 minute, 5 minutes, 15 minutes or screen-off locking after leaving.
+App lock is optional. To enable it, first set an **8–32 digit app PIN**, separate from the
+phone's screen-lock PIN. You can then enable **strong biometric unlock** after confirming
+both the app PIN and a supported biometric. The PIN remains the fallback; biometrics
+cannot be enabled without it. Removing the PIN also disables biometrics and app lock.
+Changing/removing the PIN and changing the app-lock switch require the current PIN.
+There is no biometric PIN-reset shortcut: keep your PIN safe.
+
+Existing biometric-only installations require their previous Android authentication,
+then PIN setup, before profiles can be opened. An unreadable PIN vault does not fall back
+to an unprotected unlock. App lock protects the UI; choose Immediate, 1 minute, 5 minutes,
+15 minutes or screen-off locking after leaving.
 Screen-off always locks the app, and a fresh process requires authentication when app lock
 is enabled. Timed presets intentionally retain the unlocked session during their grace period.
 Explicitly enabled background monitoring can still access the vault to perform checks.

@@ -236,14 +236,13 @@ fun TabChip(label: String, selected: Boolean, modifier: Modifier = Modifier, onC
 // ------------------------------------------------------------------ basics tab
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 private fun BasicsTab(j: J, id: Long, volumeText: String, onVolumeChange: (String) -> Unit) {
     val g = LocalGlass.current
     val session = useSession()
     val data = session.data.collectAsState().value
     val nowSec = System.currentTimeMillis() / 1000
 
-    // expiry text
-    var expText by remember(id) { mutableStateOf(if (j.long("expiry") == 0L) "" else Fmt.dateTime(j.long("expiry"), "yyyy-MM-dd HH:mm")) }
     val expiryHidden = j.bool("delayStart") && !j.bool("autoReset")
 
     GlassCard(contentPadding = 14.dp) {
@@ -269,22 +268,17 @@ private fun BasicsTab(j: J, id: Long, volumeText: String, onVolumeChange: (Strin
 
             if (!expiryHidden) {
                 Column {
-                    GlassTextField("Expiry (yyyy-MM-dd HH:mm)", expText, { t ->
-                        expText = t
-                        val unix = Fmt.parseDateTimeToUnix(t.trim())
-                        j.o.put("expiry", unix ?: 0L)
-                    }, hint = "unlimited")
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
+                    com.sonix21.suinode.ui.screens.shared.DateTimeField("Expiry", j.long("expiry")) { j.o.put("expiry", it) }
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
                         listOf("+1d" to (86400L), "+1w" to (604800L), "+1m" to (2592000L), "+1y" to (31536000L)).forEach { (label, secs) ->
                             GhostButton(label) {
                                 val base = if (j.long("expiry") > nowSec) j.long("expiry") else nowSec
                                 val nv = base + secs
                                 j.o.put("expiry", nv)
-                                expText = Fmt.dateTime(nv, "yyyy-MM-dd HH:mm")
                             }
                         }
                         GhostButton("∞", tint = g.err) {
-                            j.o.put("expiry", 0L); expText = ""
+                            j.o.put("expiry", 0L)
                         }
                     }
                 }

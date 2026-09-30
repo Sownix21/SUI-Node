@@ -8,6 +8,8 @@ import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
@@ -43,12 +45,16 @@ fun MonitoringScreen(nav: NavController) {
         onDispose { lifecycle.removeObserver(observer) }
     }
     fun refresh() = runner.go {
-        withContext(Dispatchers.IO) { store.monitorConfig() to store.monitorState() }.let { (c, s) -> config = c; state = s }
+        withContext(Dispatchers.IO) { store.monitorConfig() to store.monitorState() }.let { (c, s) ->
+            if (config == null) config = c
+            state = s
+        }
     }
     LaunchedEffect(Unit) { refresh() }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { permissionTick++ }
     val c = config
     if (c == null) { RecordLoadingPage("Monitoring", nav, runner) { refresh() }; return }
+    var expiryUnit by remember { mutableStateOf(if (c.expiryHours % 24 == 0L) "days" else "hours") }
     fun openSettings(action: String, packageUri: Boolean = false) {
         runCatching { context.startActivity(Intent(action).apply { if (packageUri) data = Uri.parse("package:${context.packageName}") }) }
             .onFailure { ToastBus.show("This settings page is unavailable. Open your device's app settings manually.") }
@@ -56,7 +62,7 @@ fun MonitoringScreen(nav: NavController) {
     PageScaffold("Monitoring & alerts", nav, busy = runner.busy, draftValue = { config?.toJson() }, primaryAction = {
         HeaderPrimaryAction("Save monitoring settings") { runner.go {
             withContext(Dispatchers.IO) { store.saveMonitorConfig(c) }
-            MonitoringScheduler.configure(context, c)
+            withContext(Dispatchers.IO) { MonitoringScheduler.configure(context, c) }
             DraftRegistry.saved()
             ToastBus.show(if (c.enabled) "Read-only background monitoring enabled" else "Background monitoring disabled")
         } }
@@ -69,10 +75,22 @@ fun MonitoringScreen(nav: NavController) {
                 if (c.enabled) {
                     MultiSelectField("Panels (empty means all saved panels)", c.panelIds, panels.map { Opt(it.name, it.id) },
                         { config = c.copy(panelIds = it) }, searchable = true)
-                    SelectField("Check interval", c.intervalMinutes, listOf(15L, 30L, 60L, 180L, 360L, 720L, 1440L).map { Opt("$it minutes", it) },
+                    SelectField("Check interval", c.intervalMinutes, listOf(15L, 30L, 60L, 120L, 180L, 240L, 360L, 480L, 720L, 1440L).map {
+                        Opt(if (it < 60) "Every $it minutes" else if (it == 60L) "Every hour" else "Every ${it / 60} hours", it)
+                    },
                         clearable = false, onChange = { it?.let { config = c.copy(intervalMinutes = it) } })
                     SwitchRow("Expiry alerts", c.expiry, { config = c.copy(expiry = it) })
-                    if (c.expiry) NumberField("Warn before expiry", c.expiryHours, suffix = "hours", onChange = { config = c.copy(expiryHours = (it ?: 72).coerceIn(1, 2160)) })
+                    if (c.expiry) {
+                        SelectField("Expiry warning unit", expiryUnit, listOf(Opt("Days", "days"), Opt("Hours", "hours")), clearable = false,
+                            onChange = { unit -> if (unit != null) {
+                                expiryUnit = unit
+                                if (unit == "days") config = c.copy(expiryHours = ((c.expiryHours + 23) / 24).coerceIn(1, 90) * 24)
+                            } })
+                        NumberField("Warn when remaining time is at most", if (expiryUnit == "days") c.expiryHours / 24 else c.expiryHours,
+                            suffix = expiryUnit, onChange = { value ->
+                                config = c.copy(expiryHours = if (expiryUnit == "days") (value ?: 3).coerceIn(1, 90) * 24 else (value ?: 72).coerceIn(1, 2160))
+                            })
+                    }
                     SwitchRow("Traffic quota alerts", c.quota, { config = c.copy(quota = it) })
                     if (c.quota) NumberField("Warn at quota used", c.quotaPercent.toLong(), suffix = "%", onChange = { config = c.copy(quotaPercent = (it ?: 90).coerceIn(1, 100).toInt()) })
                     SwitchRow("Include disabled clients", c.includeDisabled, { config = c.copy(includeDisabled = it) }, subtitle = "Includes clients the panel automatically disabled after expiry/quota exhaustion")
@@ -81,6 +99,7 @@ fun MonitoringScreen(nav: NavController) {
                     SwitchRow("Core stopped alerts", c.coreStopped, { config = c.copy(coreStopped = it) })
                     SwitchRow("Recovery notifications", c.recovery, { config = c.copy(recovery = it) })
                     NumberField("Repeat unresolved alerts", c.repeatHours, suffix = "hours · 0 = once", onChange = { config = c.copy(repeatHours = (it ?: 24).coerceIn(0, 168)) })
+                    Text("New alerts are detected at the check interval. Repeat controls reminders for conditions already reported; 0 means notify once until the condition resolves or worsens. A renewed client can still be inside your warning window, but an extension does not trigger another immediate warning.", color = LocalGlass.current.textFaint)
                     SwitchRow("Quiet hours", c.quiet, { config = c.copy(quiet = it) })
                     if (c.quiet) {
                         NumberField("Quiet from", c.quietStart.toLong(), suffix = "hour (0–23)", onChange = { config = c.copy(quietStart = (it ?: 22).coerceIn(0, 23).toInt()) })
@@ -132,15 +151,15 @@ fun AlertHistoryScreen(nav: NavController) {
     if (clear) ConfirmDialog("Clear alert history", "Remove this device's encrypted alert history? Active alert deduplication is retained. The panel is not changed.",
         onConfirm = { runner.go { state = withContext(Dispatchers.IO) { store.updateMonitorState { it.put("history", JSONArray()) }; store.monitorState() } } }, onDismiss = { clear = false })
     PageScaffold("Alert history", nav, busy = runner.busy) {
-        Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        val active = state.optJSONObject("active") ?: JSONObject()
+        val history = state.optJSONArray("history")?.objList().orEmpty().asReversed()
+        LazyColumn(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(10.dp), contentPadding = PaddingValues(bottom = 16.dp)) {
+            item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 GhostButton("Refresh") { refresh() }
                 GhostButton("Clear history") { clear = true }
-            }
-            val active = state.optJSONObject("active") ?: JSONObject()
-            val history = state.optJSONArray("history")?.objList().orEmpty().asReversed()
-            if (history.isEmpty()) Text("No alerts recorded. Monitoring is optional and starts only after you enable and save it.", color = LocalGlass.current.textFaint)
-            history.forEach { record -> GlassCard { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            } }
+            if (history.isEmpty()) item { Text("No alerts recorded. Monitoring is optional and starts only after you enable and save it.", color = LocalGlass.current.textFaint) }
+            items(history) { record -> GlassCard { Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 Text(record.optString("title"), color = LocalGlass.current.text)
                 Text(record.optString("detail"), color = LocalGlass.current.textFaint)
                 val current = active.optJSONObject(record.optString("key"))

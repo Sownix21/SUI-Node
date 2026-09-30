@@ -153,7 +153,12 @@ class SuiClient(private val panel: Panel) {
             if (settingsSave && response.success && settings != null) response.copy(obj = JSONObject(response.objObj().toString())
                 .put("settings", Panel161.settingsPayload(settings))) else response
         }
-        if (action == "save") return SaveGuard.save(this,panel,requestFields,send)
+        if (action == "save") {
+            val response = SaveGuard.save(this,panel,requestFields,send)
+            if (response.success && fields["object"] == "clients")
+                com.sonix21.suinode.core.ClientAlertFreshness.changed(panel.id)
+            return response
+        }
         if (action !in setOf("linkConvert","subConvert","getCertPing")) SaveGuard.requireNoPending(panel)
         return send()
     }

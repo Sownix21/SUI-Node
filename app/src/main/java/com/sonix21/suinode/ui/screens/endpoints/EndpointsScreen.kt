@@ -70,6 +70,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.CancellationException
 
 @Composable
+@OptIn(ExperimentalLayoutApi::class)
 fun EndpointsScreen(nav: NavController) {
     val g = LocalGlass.current
     val session = useSession()
@@ -131,10 +132,12 @@ fun EndpointsScreen(nav: NavController) {
                         val port = ep.optLongOr("listen_port")
                         val peers = ep.optJSONArray("peers")?.length()
                         Text("$addr  ·  port ${if (port > 0) port else "-"}" + (peers?.let { "  ·  $it peer(s)" } ?: ""),
-                            color = g.textFaint, fontSize = 11.5.sp, maxLines = 1)
+                            color = g.textFaint, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 val result = checks[tag]
+                Spacer(Modifier.height(8.dp))
+                // Status has its own width; optional actions must not squeeze it into fragments.
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (result?.loading == true) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp)
                     Text(when {
@@ -143,6 +146,14 @@ fun EndpointsScreen(nav: NavController) {
                         result?.error != null -> "Test failed"
                         else -> "Latency not tested"
                     }, modifier = Modifier.weight(1f), color = if (result?.error != null) g.err else g.textDim, fontSize = 12.sp)
+                }
+                result?.error?.let { Text(it, color = g.err, fontSize = 11.sp) }
+                HorizontalDivider(Modifier.padding(top = 8.dp, bottom = 4.dp), color = g.strokeLo)
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp, Alignment.End),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     com.sonix21.suinode.ui.screens.operations.SessionShortcut { nav.push(Route.Sessions("endpoint", tag)) }
                     IconButton(onClick = { test(listOf(tag)) }, enabled = !session.panel.readOnly && !testing && !runner.busy) {
                         Icon(Icons.Filled.Speed, contentDescription = "Test endpoint latency", tint = if (testing) g.textFaint else g.teal)
@@ -153,7 +164,6 @@ fun EndpointsScreen(nav: NavController) {
                     IconGhostButton(Icons.Rounded.Edit, { nav.push(Route.EndpointEditor(ep.optLongOr("id"))) }, contentDesc = "edit")
                     IconGhostButton(Icons.Rounded.DeleteOutline, { deleteTag = tag }, tint = g.err, contentDesc = "delete")
                 }
-                result?.error?.let { Text(it, color = g.err, fontSize = 11.sp) }
             }
         }
     }
