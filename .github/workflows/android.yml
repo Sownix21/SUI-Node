@@ -29,21 +29,12 @@ jobs:
           cache: gradle
 
       - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install Android SDK packages
-        shell: bash
-        run: |
-          SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
-
-          yes | sdkmanager \
-            --sdk_root="$SDK_ROOT" \
-            --licenses >/dev/null || true
-
-          sdkmanager \
-            --sdk_root="$SDK_ROOT" \
-            "platforms;android-36.1" \
-            "build-tools;36.0.0"
+        uses: android-actions/setup-android@v4
+        with:
+          packages: |
+            platform-tools
+            platforms;android-36.1
+            build-tools;36.0.0
 
       - name: Make Gradle executable
         run: chmod +x ./gradlew
