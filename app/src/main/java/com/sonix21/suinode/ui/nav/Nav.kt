@@ -7,6 +7,7 @@ sealed interface Route {
 
     data object Home : Route
     data object Logs : Route
+    data class Sessions(val resource: String = "user", val tag: String? = null) : Route
 
     data object Clients : Route
     data class ClientEditor(val id: Long) : Route    // 0 = new

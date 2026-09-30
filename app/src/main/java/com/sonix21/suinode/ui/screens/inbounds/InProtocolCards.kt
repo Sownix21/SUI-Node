@@ -140,20 +140,9 @@ private fun HysteriaCard(j: J) {
                     onChange = { j.o.put("down_mbps", it ?: 0) }, modifier = Modifier.weight(1f))
             }
             GlassTextField("Obfuscated password", j.str("obfs"), { v -> j.setStr("obfs", v) })
-            SwitchRow("Disable MTU discovery", j.bool("disable_mtu_discovery"),
-                { j.setBool("disable_mtu_discovery", it, onlyTrue = true) })
-            OptionalNumber(j, "recv_window_conn", "Receive window conn", 15728640L)
-            OptionalNumber(j, "recv_window_client", "Receive window client", 67108864L)
-            OptionalNumber(j, "max_conn_client", "Max connections per client", 1024L)
+            // 1.6.3 uses the shared QUIC tuning group below the protocol card.
+            // Existing deprecated fields remain untouched in the full-record draft.
         }
-    }
-}
-
-@Composable
-private fun OptionalNumber(j: J, key: String, label: String, def: Long) {
-    SwitchRow(label, j.has(key), { on -> if (on) j.o.put(key, def) else j.o.remove(key) })
-    if (j.has(key)) {
-        NumberField("$label value", j.long(key), suffix = "", onChange = { v -> j.o.put(key, v ?: def) })
     }
 }
 

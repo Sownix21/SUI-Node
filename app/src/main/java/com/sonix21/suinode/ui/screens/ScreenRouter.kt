@@ -89,6 +89,7 @@ fun screenFor(route: Route, nav: NavController, requestThemeRefresh: () -> Unit)
         Route.Renewals -> RenewalScreen(nav)
         Route.ConnectionDiagnostics -> ConnectionDiagnosticsScreen(nav)
         Route.Logs -> LogsScreen(nav)
+        is Route.Sessions -> SessionsScreen(nav, route.resource, route.tag)
         is Route.TrafficChart -> TrafficChartScreen(nav, route.resource, route.tag, route.title)
         is Route.Backup -> BackupScreen(nav)
         Route.Tools -> ToolsScreen(nav)
@@ -115,6 +116,7 @@ private fun ToolsScreen(nav: NavController) {
         ToolDestination("Panel settings", "Web & subscription settings", Icons.Rounded.Tune, Route.PanelSettings),
     )
     val management = listOf(
+        ToolDestination("Live sessions", "Connections by client, inbound or endpoint", Icons.Rounded.NetworkCheck, Route.Sessions()),
         ToolDestination("Connection diagnostics", "Connectivity and certificate identity", Icons.Rounded.Security, Route.ConnectionDiagnostics),
         ToolDestination("Renewals", "Expiry, quota and safe renewal previews", Icons.Rounded.Event, Route.Renewals),
         ToolDestination("Monitoring & alerts", "Read-only checks and alert history", Icons.Rounded.Notifications, Route.Monitoring),

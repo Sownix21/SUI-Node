@@ -351,9 +351,7 @@ private fun OutProtocolFields(j: J, type: String) {
         GlassTextField("Auth string", j.str("auth_str"), { j.setStr("auth_str", it) })
         GlassTextField("Obfs", j.str("obfs"), { j.setStr("obfs", it) })
         NetworkField(j)
-        SwitchRow("Disable MTU discovery", j.bool("disable_mtu_discovery"), { j.setBool("disable_mtu_discovery", it, onlyTrue = true) })
-        OptionalNum(j, "recv_window_conn", "Receive window conn", 15728640L)
-        OptionalNum(j, "recv_window", "Receive window", 67108864L)
+        // Shared QUIC tuning replaces the deprecated receive-window controls.
         SwitchRow("Port hopping", j.has("server_ports"), { on ->
             if (on) j.o.put("server_ports", jarr(emptyList<String>())) else { j.o.remove("server_ports"); j.o.remove("hop_interval") }
         })

@@ -53,6 +53,7 @@ fun OutTlsEditor(holder: J, title: String = "TLS", server: String? = null, serve
         SectionHeader(title)
         Spacer(Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            runner.error?.let { Text(it, color = g.err) }
             SwitchRow("Enabled", holder.bool("enabled"), { holder.o.put("enabled", it) })
             if (holder.bool("enabled")) {
             SwitchRow("Insecure (skip verify)", holder.bool("insecure"), { holder.setBool("insecure", it, onlyTrue = true) })
@@ -71,6 +72,9 @@ fun OutTlsEditor(holder: J, title: String = "TLS", server: String? = null, serve
                     options = TLS_VERSIONS.map { Opt(it, it) },
                     onChange = { holder.setStr("max_version", it) }, modifier = Modifier.weight(1f))
             }
+
+            TlsExtraOptions(holder)
+            MutualTlsFields(null, holder)
 
             // ---- uTLS fingerprint
             val hasUtls = holder.has("utls")
@@ -165,12 +169,7 @@ fun OutTlsEditor(holder: J, title: String = "TLS", server: String? = null, serve
                 }
             }
 
-            // ---- fragment
-            SwitchRow("Fragment (TLS fragmentation)", holder.bool("fragment"), { holder.setBool("fragment", it, onlyTrue = true) })
-            if (holder.has("fragment")) {
-                DurationField("Fragment fallback delay", holder.optStringOrNull("fragment_fallback_delay"), 's',
-                    onChange = { holder.setOrRemove("fragment_fallback_delay", it) })
-            }
+            TlsFragmentFields(holder)
             }
         }
     }

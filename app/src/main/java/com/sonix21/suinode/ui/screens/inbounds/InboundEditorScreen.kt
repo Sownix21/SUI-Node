@@ -66,7 +66,7 @@ val IN_TYPES = listOf(
 )
 
 private val HAS_TABS = setOf("socks", "http", "mixed", "shadowsocks", "vmess", "shadowtls", "trojan", "hysteria", "vless", "anytls", "tuic", "hysteria2", "naive")
-private val HAS_USERS = setOf("mixed", "socks", "http", "shadowsocks", "vmess", "trojan", "naive", "hysteria", "shadowtls", "tuic", "hysteria2", "vless", "anytls")
+private val HAS_USERS = setOf("mixed", "socks", "http", "shadowsocks", "snell", "vmess", "trojan", "naive", "hysteria", "shadowtls", "tuic", "hysteria2", "vless", "anytls")
 val IN_HAS_TLS = setOf("http", "vmess", "trojan", "naive", "hysteria", "tuic", "hysteria2", "vless", "anytls")
 private val ONLY_TLS = setOf("hysteria", "hysteria2", "tuic", "naive", "anytls")
 private val MUX_AVAILABLE = setOf("vless", "vmess", "trojan", "shadowsocks")

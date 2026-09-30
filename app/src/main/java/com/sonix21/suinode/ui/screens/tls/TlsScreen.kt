@@ -238,7 +238,19 @@ fun TlsEditorScreen(nav: NavController, id: Long) {
                 }
             }
 
-            if (!isReality) CertSection(server)
+            GlassCard(contentPadding = 14.dp) {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    SectionHeader("Server TLS options")
+                    com.sonix21.suinode.ui.screens.shared.TlsExtraOptions(server)
+                    SectionHeader("Client TLS options")
+                    com.sonix21.suinode.ui.screens.shared.TlsExtraOptions(client)
+                    com.sonix21.suinode.ui.screens.shared.TlsFragmentFields(client)
+                }
+            }
+            if (!isReality) {
+                CertSection(server)
+                com.sonix21.suinode.ui.screens.shared.MutualTlsFields(server, client)
+            }
 
             // Shared certificate providers live in the base config and are
             // referenced here by tag (sing-box tls.certificate_provider).
@@ -259,9 +271,9 @@ fun TlsEditorScreen(nav: NavController, id: Long) {
 
             if (isReality) RealitySection(server, client, session)
 
-            AcmeSection(server, enabled = !isReality && server.has("acme"), onToggle = { on ->
-                if (on) server.o.put("acme", jo("domain" to jarr(emptyList<String>()))) else server.o.remove("acme")
-            })
+            if (server.has("acme")) GlassCard {
+                Text("Legacy inline ACME configuration is preserved. Use Tools → Certificates to configure a shared certificate provider for the current core, then replace the legacy block in Advanced JSON.", color = g.textDim)
+            }
 
             EchSection(server, client)
 
@@ -292,8 +304,8 @@ fun TlsEditorScreen(nav: NavController, id: Long) {
                             clearable = false,
                             onChange = { v -> if (v != null) server.o.put("store", v) })
                     }
-                    SwitchRow("kTLS transmit", server.has("kernel_tx"), { on -> if (on) server.o.put("kernel_tx", false) else server.o.remove("kernel_tx") })
-                    SwitchRow("kTLS receive", server.has("kernel_rx"), { on -> if (on) server.o.put("kernel_rx", false) else server.o.remove("kernel_rx") })
+                    SwitchRow("kTLS transmit", server.bool("kernel_tx"), { server.setBool("kernel_tx", it, true) })
+                    SwitchRow("kTLS receive", server.bool("kernel_rx"), { server.setBool("kernel_rx", it, true) })
                 }
             }
             com.sonix21.suinode.ui.screens.AdvancedJsonCard(j.o) { obj = it }
@@ -413,81 +425,6 @@ private fun RealitySection(server: J, client: J, session: com.sonix21.suinode.da
     }
 }
 
-// -------------------------------------------------------------------- acme
-
-@Composable
-fun AcmeSection(server: J, enabled: Boolean, onToggle: (Boolean) -> Unit) {
-    if (!enabled) {
-        GlassCard(contentPadding = 14.dp) {
-            SwitchRow("ACME (automatic certificate)", false, onToggle)
-        }
-        return
-    }
-    val acme = server.ensureObj("acme")
-    val dnsProviders = mapOf(
-        "cloudflare" to listOf("api_token", "zone_token"),
-        "alidns" to listOf("access_key_id", "access_key_secret", "region_id", "security_token"),
-        "acmedns" to listOf("username", "password", "subdomain", "server_url"),
-    )
-
-    GlassCard(contentPadding = 14.dp) {
-        SectionHeader("ACME") { GhostButton("Remove", tint = LocalGlass.current.err) { onToggle(false) } }
-        Spacer(Modifier.height(8.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            CsvField("Domains", acme.arr("domain")?.strListX() ?: emptyList(), { parts ->
-                acme.o.put("domain", jarr(parts))
-            }, hint = "a.com,b.org")
-            ToggleTextA(acme, "data_directory", "Data directory", "")
-            ToggleTextA(acme, "default_server_name", "Default server name", "")
-            ToggleTextA(acme, "email", "Email", "")
-            SwitchRow("Disable HTTP challenge", acme.bool("disable_http_challenge"),
-                { acme.setBool("disable_http_challenge", it, onlyTrue = true) })
-            SwitchRow("Disable TLS-ALPN challenge", acme.bool("disable_tls_alpn_challenge"),
-                { acme.setBool("disable_tls_alpn_challenge", it, onlyTrue = true) })
-            NumberField("Alternative HTTP port", acme.long("alternative_http_port").takeIf { it > 0 },
-                hint = "80", onChange = { acme.setLong("alternative_http_port", it) })
-            NumberField("Alternative TLS port", acme.long("alternative_tls_port").takeIf { it > 0 },
-                hint = "443", onChange = { acme.setLong("alternative_tls_port", it) })
-
-            val hasEab = acme.has("external_account")
-            SwitchRow("External account binding", hasEab, { on ->
-                if (on) acme.o.put("external_account", jo("key_id" to "", "mac_key" to "")) else acme.o.remove("external_account")
-            })
-            if (hasEab) {
-                val eab = acme.ensureObj("external_account")
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    GlassTextField("Key ID", eab.str("key_id"), { eab.setStr("key_id", it) }, Modifier.weight(1f))
-                    GlassTextField("MAC key", eab.str("mac_key"), { eab.setStr("mac_key", it) }, Modifier.weight(1f))
-                }
-            }
-
-            val hasDns = acme.has("dns01_challenge")
-            SwitchRow("DNS-01 challenge", hasDns, { on ->
-                if (on) acme.o.put("dns01_challenge", jo("provider" to "cloudflare")) else acme.o.remove("dns01_challenge")
-            })
-            if (hasDns) {
-                val d = acme.ensureObj("dns01_challenge")
-                SelectField(label = "DNS provider", value = d.str("provider"),
-                    options = dnsProviders.keys.map { Opt(it, it) }, clearable = false,
-                    onChange = { v -> if (v != null) {
-                        d.o.keys().asSequence().toList().forEach { d.o.remove(it) }
-                        d.o.put("provider", v)
-                    } })
-                dnsProviders[d.str("provider")]?.forEach { param ->
-                    GlassTextField(param.replace('_', ' '), d.str(param), { v ->
-                        if (v.isBlank()) d.o.remove(param) else d.o.put(param, v)
-                    })
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun ToggleTextA(j: J, key: String, label: String, defOn: String) {
-    SwitchRow(label, j.has(key), { on -> if (on) j.o.put(key, defOn) else j.o.remove(key) })
-    if (j.has(key)) GlassTextField(label, j.str(key), { v -> j.setStr(key, v, blankRemoves = false) })
-}
 
 // --------------------------------------------------------------------- ech
 

@@ -35,7 +35,7 @@ Debug signing uses Android's automatically generated debug key; no project-local
 `debug.keystore` is required.
 
 The application ID and source namespace are `com.sonix21.suinode`.
-The visible name is **S-UI Node**. Version 2.3 uses version code 5.
+The visible name is **S-UI Node**. Version 2.4 uses version code 6.
 This identity installs separately from previous differently identified builds; their
 encrypted profiles cannot be transferred automatically. Keep that installation until
 you have securely re-entered and verified your panel profiles in S-UI Node.

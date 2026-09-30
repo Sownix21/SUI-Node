@@ -176,6 +176,7 @@ fun ClientsScreen(nav: NavController) {
                     onDelete = { deleteId = c.optLongOr("id") },
                     onQr = { nav.push(Route.ClientQr(c.optLongOr("id"))) },
                     onChart = { nav.push(Route.TrafficChart("user", c.optString("name"), c.optString("name"))) },
+                    onSessions = { nav.push(Route.Sessions("user", c.optString("name"))) },
                 )
             }
         }
@@ -224,6 +225,7 @@ private fun ClientRow(
     onDelete: () -> Unit,
     onQr: () -> Unit,
     onChart: () -> Unit,
+    onSessions: () -> Unit,
 ) {
     val g = LocalGlass.current
     val online = c.optString("name") in data.onlines.user
@@ -262,6 +264,7 @@ private fun ClientRow(
             modifier = Modifier.fillMaxWidth().padding(top = 10.dp).height(3.dp),
             color = if (usagePct > 90) g.err else g.teal, trackColor = g.strokeLo, drawStopIndicator = {})
         Row(Modifier.fillMaxWidth().padding(top = 4.dp), horizontalArrangement = Arrangement.End) {
+            com.sonix21.suinode.ui.screens.operations.SessionShortcut(onSessions)
             IconGhostButton(Icons.AutoMirrored.Filled.ShowChart, onChart, tint = g.textFaint, contentDesc = "Traffic")
             IconGhostButton(Icons.Filled.QrCode2, onQr, tint = g.textFaint, contentDesc = "QR code")
             IconGhostButton(Icons.Rounded.Edit, onEdit, tint = g.teal, contentDesc = "Edit client")

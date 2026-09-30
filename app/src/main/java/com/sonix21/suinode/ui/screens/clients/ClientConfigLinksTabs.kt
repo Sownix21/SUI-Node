@@ -48,6 +48,9 @@ fun ConfigTab(j: J) {
         }
         Spacer(Modifier.height(10.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (!config.has("snell")) GhostButton("Add Snell credentials") {
+                config.put("snell", jo("name" to j.str("name"), "userkey" to Rand.seq(32)))
+            }
             config.keys().asSequence().sorted().forEach { key ->
                 val entry = config.optJSONObject(key) ?: return@forEach
                 GlassCard(corner = 16.dp, contentPadding = 12.dp, modifier = Modifier.fillMaxWidth()) {
@@ -58,6 +61,8 @@ fun ConfigTab(j: J) {
                     }
                     Spacer(Modifier.height(6.dp))
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (entry.has("userkey"))
+                            GlassTextField("User key", entry.optString("userkey"), { v -> entry.put("userkey", v) }, obscure = true)
                         if (entry.has("password"))
                             GlassTextField("Password", entry.optString("password"), { v -> entry.put("password", v) })
                         if (entry.has("uuid"))

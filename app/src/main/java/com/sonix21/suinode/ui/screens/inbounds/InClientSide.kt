@@ -89,7 +89,8 @@ fun ClientSideTab(j: J, session: PanelSession, type: String, typeVersion: Int) {
                 SwitchRow("Authenticated length", out.bool("authenticated_length"), { out.setBool("authenticated_length", it, onlyTrue = true) })
             }
             if (type == "hysteria") {
-                NumberField("Receive window", out.long("recv_window").takeIf { it > 0 }, onChange = { out.setLong("recv_window", it) })
+                GlassTextField("Stream receive window", out.str("stream_receive_window"),
+                    { out.setStr("stream_receive_window", it.trim()) }, hint = "8mb")
             }
             if (type == "tuic") {
                 SelectField(

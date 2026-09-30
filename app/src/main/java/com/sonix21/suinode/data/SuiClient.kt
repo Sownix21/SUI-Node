@@ -190,6 +190,18 @@ class SuiClient(private val panel: Panel) {
 
     suspend fun postEmpty(action: String): Envelope = postForm(action, emptyMap())
 
+    suspend fun sessions(resource: String, tag: String? = null): List<JSONObject> {
+        require(resource in setOf("user", "inbound", "outbound", "endpoint")) { "Invalid session resource" }
+        val response = get("sessions", mapOf("resource" to resource, "tag" to tag))
+        check(response.success) { response.msg }
+        return com.sonix21.suinode.core.LiveSessions.parse(response.obj)
+    }
+
+    suspend fun closeUserSessions(user: String): Envelope {
+        require(user.isNotBlank()) { "Select a client before closing sessions" }
+        return postForm("closeSessions", mapOf("u" to user))
+    }
+
     suspend fun uploadDb(file: File): Envelope {
         check(!panel.readOnly) { "Read-only safety mode blocks database restore" }
         SaveGuard.requireNoPending(panel)
@@ -262,7 +274,7 @@ class SuiClient(private val panel: Panel) {
     companion object {
         const val TOKEN_HEADER = "Token"
         val GET_ACTIONS = setOf("load", "inbounds", "outbounds", "endpoints", "services", "tls", "clients",
-            "config", "users", "settings", "stats", "status", "onlines", "logs", "changes", "keypairs", "getdb", "checkOutbound")
-        val POST_ACTIONS = setOf("save", "restartApp", "restartSb", "maintenance", "resetTraffic", "linkConvert", "subConvert", "importdb", "getCertPing")
+            "config", "users", "settings", "stats", "status", "onlines", "sessions", "logs", "changes", "keypairs", "getdb", "checkOutbound")
+        val POST_ACTIONS = setOf("save", "restartApp", "restartSb", "maintenance", "resetTraffic", "linkConvert", "subConvert", "importdb", "getCertPing", "closeSessions")
     }
 }

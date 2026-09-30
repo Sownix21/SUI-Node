@@ -44,10 +44,7 @@ fun HttpClientOptions(j: J, session: PanelSession) {
         SelectField("Engine", j.str("engine", "go"), listOf("go", "apple").map { Opt(it,it) }, onChange = { j.setStr("engine", it) })
         SelectField("HTTP version", j.int("version"), listOf(Opt("Automatic",0),Opt("HTTP/1.1",1),Opt("HTTP/2",2),Opt("HTTP/3",3)), clearable = false,
             onChange = { version ->
-                j.setInt("version", version)
-                val keys = listOf("initial_packet_size","disable_path_mtu_discovery") +
-                    if (version == 1) listOf("idle_timeout","keep_alive_period","stream_receive_window","connection_receive_window","max_concurrent_streams") else emptyList()
-                if (version != 3) keys.forEach(j::remove)
+                Panel163.httpVersion(j.o, version ?: 0)
             })
         if (j.int("version") > 0) SwitchRow("Disable version fallback", j.bool("disable_version_fallback"), { j.setBool("disable_version_fallback",it,true) })
         HeadersCard(j)

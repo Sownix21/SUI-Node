@@ -98,6 +98,9 @@ fun RoutingScreen(nav: NavController) {
                         SectionHeader("Defaults") {
                             PrimaryButton("Save") { saveConfig("routing saved") }
                         }
+                        SelectField("Default HTTP client", rJ.optStringOrNull("default_http_client"),
+                            data.config.optJSONArray("http_clients")?.objList()?.map { Opt(it.optString("tag"), it.optString("tag")) } ?: emptyList(),
+                            onChange = { rJ.setStr("default_http_client", it) })
                         SelectField(
                             label = "Default outbound (final)",
                             value = rJ.str("final"),

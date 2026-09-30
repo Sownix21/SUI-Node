@@ -25,6 +25,7 @@ def compare(label, expected, actual):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("backend", type=Path)
+    parser.add_argument("--frontend", type=Path, help="Also compare frontend protocol selectors")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     kotlin = root / "app/src/main/java/com/sonix21/suinode"
@@ -42,6 +43,18 @@ def main():
     protected = set(re.findall(r'"(\w+)"', capture(r"val protectedSettings = setOf\((.*?)\)", app_settings)))
     actual = set(re.findall(r'"(\w+)"', capture(r"val writableSettings = setOf\((.*?)\)", app_settings)))
     compare("Writable settings", defaults - protected, actual)
+    if args.frontend:
+        registries = [
+            ("inbounds", "InTypes", "inbounds/InboundEditorScreen.kt", "IN_TYPES"),
+            ("outbounds", "OutTypes", "outbounds/OutboundEditorScreen.kt", "OUT_TYPES"),
+            ("dns", "DnsTypes", "dns/DnsScreens.kt", "DNS_TYPES"),
+        ]
+        for name, ts_name, filename, kt_name in registries:
+            ts = (args.frontend / f"src/types/{name}.ts").read_text(encoding="utf-8")
+            kt = (kotlin / "ui/screens" / filename).read_text(encoding="utf-8")
+            expected = set(re.findall(r":\s*'([^']+)'", capture(rf"export const {ts_name} = \{{(.*?)\}}", ts)))
+            actual = set(re.findall(r'"([^"\n]+)"', capture(rf"val {kt_name} = listOf\((.*?)\)", kt)))
+            compare(f"Frontend {name} types", expected, actual)
     print("Backend version:", (args.backend / "config/version").read_text().strip())
     print("Registry parity only; run HTTP fixture tests and controlled device tests too.")
 

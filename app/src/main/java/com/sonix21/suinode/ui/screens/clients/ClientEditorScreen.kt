@@ -77,6 +77,7 @@ fun randomConfigs(user: String): JSONObject {
         "shadowsocks" to jo("name" to user, "password" to ss32),
         "shadowsocks16" to jo("name" to user, "password" to ss16),
         "shadowtls" to jo("name" to user, "password" to ss32),
+        "snell" to jo("name" to user, "userkey" to Rand.seq(32)),
         "vmess" to jo("name" to user, "uuid" to uuid, "alterId" to 0),
         "vless" to jo("name" to user, "uuid" to uuid, "flow" to "xtls-rprx-vision"),
         "anytls" to jo("name" to user, "password" to mixedPw),
@@ -95,6 +96,7 @@ fun shuffleKey(cfg: J, key: String) {
         "mixed", "socks", "http", "anytls", "trojan", "naive", "hysteria2" -> entry.put("password", Rand.seq(10))
         "shadowsocks", "shadowtls" -> entry.put("password", Rand.ssPassword(32))
         "shadowsocks16" -> entry.put("password", Rand.ssPassword(16))
+        "snell" -> entry.put("userkey", Rand.seq(32))
         "hysteria" -> entry.put("auth_str", Rand.seq(10))
         "tuic" -> { entry.put("password", Rand.seq(10)); entry.put("uuid", Rand.uuid()) }
         "vmess", "vless" -> entry.put("uuid", Rand.uuid())

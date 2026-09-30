@@ -31,7 +31,7 @@ import com.sonix21.suinode.ui.screens.shared.OutTlsEditor
 import org.json.JSONArray
 import org.json.JSONObject
 
-private val DNS_TYPES = listOf("local", "hosts", "tcp", "udp", "tls", "quic", "https", "h3", "dhcp", "fakeip", "tailscale", "resolved")
+val DNS_TYPES = listOf("local", "mdns", "hosts", "tcp", "udp", "tls", "quic", "https", "h3", "dhcp", "fakeip", "tailscale", "resolved")
 private val SERVER_TYPES = setOf("tcp", "udp", "tls", "quic", "https", "h3")
 private val TLS_TYPES = setOf("tls", "quic", "https", "h3")
 

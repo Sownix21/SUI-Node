@@ -109,7 +109,7 @@ fun EndpointsScreen(nav: NavController) {
         },
     ) {
         Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.End) {
-            GhostButton(if (testing) "Testing…" else "Test all", enabled = !testing && !runner.busy && data.endpoints.isNotEmpty()) {
+            GhostButton(if (testing) "Testing…" else "Test all", enabled = !session.panel.readOnly && !testing && !runner.busy && data.endpoints.isNotEmpty()) {
                 test(data.endpoints.map { it.optString("tag") }.filter { it.isNotBlank() })
             }
         }
@@ -121,7 +121,7 @@ fun EndpointsScreen(nav: NavController) {
             val tag = ep.optString("tag")
             GlassCard(Modifier.fillMaxWidth(), contentPadding = 16.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (tag in data.onlines.outbound) StatusDot(g.blue, 8.dp)
+                    if (tag in data.onlines.outbound || tag in data.onlines.inbound) StatusDot(g.blue, 8.dp)
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                             Text(tag, modifier = Modifier.weight(1f), color = g.text, fontWeight = FontWeight.Bold, fontSize = 14.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -143,7 +143,8 @@ fun EndpointsScreen(nav: NavController) {
                         result?.error != null -> "Test failed"
                         else -> "Latency not tested"
                     }, modifier = Modifier.weight(1f), color = if (result?.error != null) g.err else g.textDim, fontSize = 12.sp)
-                    IconButton(onClick = { test(listOf(tag)) }, enabled = !testing && !runner.busy) {
+                    com.sonix21.suinode.ui.screens.operations.SessionShortcut { nav.push(Route.Sessions("endpoint", tag)) }
+                    IconButton(onClick = { test(listOf(tag)) }, enabled = !session.panel.readOnly && !testing && !runner.busy) {
                         Icon(Icons.Filled.Speed, contentDescription = "Test endpoint latency", tint = if (testing) g.textFaint else g.teal)
                     }
                     if (EndpointConfig.canOfferQr(ep)) IconGhostButton(Icons.Filled.QrCode2, {

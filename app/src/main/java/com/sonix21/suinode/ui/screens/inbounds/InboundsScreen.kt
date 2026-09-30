@@ -99,6 +99,7 @@ fun InboundsScreen(nav: NavController) {
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.sonix21.suinode.ui.screens.operations.SessionShortcut { nav.push(Route.Sessions("inbound", tag)) }
                     IconGhostButton(Icons.AutoMirrored.Filled.ShowChart, {
                         nav.push(Route.TrafficChart("inbound", tag, tag))
                     }, tint = g.teal, contentDesc = "traffic")

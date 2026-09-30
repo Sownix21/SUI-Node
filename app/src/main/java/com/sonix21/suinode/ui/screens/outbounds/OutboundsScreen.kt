@@ -135,6 +135,7 @@ fun OutboundsScreen(nav: NavController) {
                 Spacer(Modifier.height(12.dp))
                 HorizontalDivider(color = g.strokeLo)
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    com.sonix21.suinode.ui.screens.operations.SessionShortcut { nav.push(Route.Sessions("outbound", tag)) }
                     IconGhostButton(Icons.AutoMirrored.Filled.ShowChart, {
                         nav.push(Route.TrafficChart("outbound", tag, tag))
                     }, tint = g.teal, contentDesc = "Traffic")

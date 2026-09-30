@@ -54,6 +54,50 @@ class ApiV2ContractTest {
 
     @After fun stop() { session.client.logout(); server.stop(0); StatusStore.reset() }
 
+    @Test fun sessionsUseApiV2ArrayAndEncodedFilters() = runBlocking {
+        reply = { jo("success" to true, "obj" to jarr(listOf(
+            jo("id" to "older", "createdAt" to 10, "up" to 1, "down" to 2),
+            jo("id" to "newer", "createdAt" to 20, "up" to 3, "down" to 4, "domain" to "example.test")
+        ))).toString() }
+        val rows = session.client.sessions("user", "alice & bob")
+        assertEquals(listOf("newer", "older"), rows.map { it.getString("id") })
+        assertEquals("/app/apiv2/sessions", requests.single().path)
+        assertEquals("GET", requests.single().method)
+        assertEquals("resource=user&tag=alice & bob", URLDecoder.decode(requests.single().query, "UTF-8"))
+        assertEquals("contract-test-token", requests.single().token)
+    }
+
+    @Test fun sessionDisconnectIsExplicitUserFormAndReadOnlyBlocksIt() = runBlocking {
+        reply = { jo("success" to true).toString() }
+        assertTrue(session.client.closeUserSessions("alice & bob").success)
+        assertEquals("/app/apiv2/closeSessions", requests.single().path)
+        assertEquals("POST", requests.single().method)
+        assertEquals("u=alice & bob", URLDecoder.decode(requests.single().body, "UTF-8"))
+        assertTrue(runCatching { session.client.closeUserSessions(" ") }.isFailure)
+        val readOnly = SuiClient(session.panel.copy(readOnly = true))
+        try { assertTrue(runCatching { readOnly.closeUserSessions("alice") }.isFailure) }
+        finally { readOnly.logout() }
+        assertEquals(1, requests.size)
+    }
+
+    @Test fun unsupportedSessionsAndMalformedSessionDataAreNotShownAsEmpty() = runBlocking {
+        reply = { jo("success" to false, "msg" to "unknown action: sessions").toString() }
+        assertTrue(runCatching { session.client.sessions("user") }.isFailure)
+        reply = { envelope(jo("unexpected" to true)) }
+        assertTrue(runCatching { session.client.sessions("endpoint", "wg") }.isFailure)
+        reply = { jo("success" to true, "obj" to JSONObject.NULL).toString() }
+        assertTrue(session.client.sessions("user").isEmpty())
+    }
+
+    @Test fun certificateProbeUsesDomainAndPortFormOnApiV2() = runBlocking {
+        reply = { envelope(jo("leafHash" to "fixture-hash")) }
+        val result = session.client.postForm("getCertPing", mapOf("domain" to "example.test", "port" to "443"))
+        assertEquals("fixture-hash", result.objObj()?.getString("leafHash"))
+        assertEquals("/app/apiv2/getCertPing", requests.single().path)
+        assertEquals("domain=example.test&port=443", requests.single().body)
+        assertEquals("POST", requests.single().method)
+    }
+
     @Test fun settingsRoundTripIgnores161BookkeepingAndPreservesSubscriptionStrings() = runBlocking {
         val stored = jo("webPort" to "2095", "subURI" to "https://vpn.example/sub/",
             "subJsonExt" to "{\"custom\":{\"keep\":true}}", "subClashExt" to "tun:\n  enable: true\n",
