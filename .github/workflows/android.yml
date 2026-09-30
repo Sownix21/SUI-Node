@@ -16,15 +16,47 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          persist-credentials: false
 
-      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '21'
+          java-version: "21"
+          cache: gradle
 
-      - name: Test, lint and build (no production signing secrets)
-        run: bash gradlew testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease --no-daemon --max-workers=2
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        shell: bash
+        run: |
+          SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+
+          yes | sdkmanager \
+            --sdk_root="$SDK_ROOT" \
+            --licenses >/dev/null || true
+
+          sdkmanager \
+            --sdk_root="$SDK_ROOT" \
+            "platforms;android-36.1" \
+            "build-tools;36.0.0"
+
+      - name: Make Gradle executable
+        run: chmod +x ./gradlew
+
+      - name: Test, lint and build
+        run: |
+          ./gradlew \
+            testDebugUnitTest \
+            lintDebug \
+            lintRelease \
+            assembleDebug \
+            assembleRelease \
+            bundleRelease \
+            --no-daemon \
+            --stacktrace \
+            --max-workers=2
