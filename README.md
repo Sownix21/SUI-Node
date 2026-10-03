@@ -68,7 +68,7 @@ No separate port-stripping feature is needed.
 
 ## Compatibility and limits
 
-Version 2.4 targets the supplied **s-ui 1.6.3** backend and frontend, using APIv2 only.
+Version 2.4.1 targets the supplied **s-ui 1.6.3** backend and frontend, using APIv2 only.
 
 | Reference | Scope |
 | --- | --- |
@@ -77,7 +77,7 @@ Version 2.4 targets the supplied **s-ui 1.6.3** backend and frontend, using APIv
 | Earlier panels | Existing APIv2 features remain available; 1.6.3-only actions report an error when unsupported |
 | Later releases | Require a fresh contract/form review; not automatically certified |
 
-See [what changed in 2.4](docs/CHANGES-2.4.md), the [1.6.3 compatibility notes](docs/PANEL-1.6.3.md),
+See [what changed in 2.4.1](docs/CHANGES-2.4.md), the [1.6.3 compatibility notes](docs/PANEL-1.6.3.md),
 and [APIv2 documentation](https://github.com/alireza0/s-ui/wiki/API-Documentation).
 
 ### Protocol families
@@ -182,8 +182,10 @@ after it. Traffic between the reset and that sample cannot be reconstructed prec
 Saving other options does not keep postponing an already scheduled start.
 
 VPS billing reminders store a due date, period, optional price/currency and warning window
-locally. They neither contact your provider nor make payments. Dates advance only when
-you explicitly mark a renewal and save it.
+locally. Pick the due date from a calendar; its day stays unchanged when choosing a billing
+timezone. Billing reset times and quiet-hour boundaries open popup controls. They neither
+contact your provider nor make payments. Dates advance only when you explicitly mark a
+renewal and save it.
 
 The quota screen previews the next reset date. Changing an existing billing calendar
 requires correcting already-used traffic or explicitly starting at the next cycle. Persian/Arabic
@@ -199,11 +201,13 @@ by non-exportable Android Keystore keys. StrongBox is preferred where available;
 hardware protection depends on the device. Vault files are excluded from Android backup.
 
 App lock is optional. To enable it, first set an **8–32 digit app PIN**, separate from the
-phone's screen-lock PIN. You can then enable **strong biometric unlock** after confirming
-both the app PIN and a supported biometric. The PIN remains the fallback; biometrics
+phone's screen-lock PIN. You can then enable **strong biometric unlock** by confirming
+a supported biometric directly, without entering the app PIN again. The PIN remains the fallback; biometrics
 cannot be enabled without it. Removing the PIN also disables biometrics and app lock.
 Changing/removing the PIN and changing the app-lock switch require the current PIN.
 There is no biometric PIN-reset shortcut: keep your PIN safe.
+PIN setup, change, removal and lock confirmations open in a popup instead of below the
+settings scroll position. The form scrolls independently of its confirmation buttons.
 
 Existing biometric-only installations require their previous Android authentication,
 then PIN setup, before profiles can be opened. An unreadable PIN vault does not fall back

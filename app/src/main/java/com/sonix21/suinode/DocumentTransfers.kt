@@ -1,6 +1,7 @@
 package com.sonix21.suinode
 
 import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.getValue
@@ -69,7 +70,7 @@ class DocumentTransfers(private val activity: MainActivity, state: Bundle?) {
         activity.lifecycleScope.launch {
             val client = SuiClient(panel)
             try {
-                val uri = Uri.parse(target)
+                val uri = target.toUri()
                 if (ticket.kind == DocumentKind.BACKUP) {
                     val count = client.downloadDatabase(mapOf("exclude" to ticket.exclude)) {
                         activity.contentResolver.openOutputStream(uri, "wt") ?: error("Cannot open the selected destination")

@@ -84,8 +84,10 @@ object Urls {
 }
 
 /** Device-bound encrypted storage. The deprecated library is used only to migrate old data. */
-class PanelStore(private val context: Context) {
-    private val vault by lazy { KeystoreVault(context) }
+class PanelStore(context: Context) {
+    // Never retain an Activity through the app-wide stores or lazy migration callbacks.
+    private val context: android.app.Application = context.applicationContext as android.app.Application
+    private val vault by lazy { KeystoreVault(this.context) }
     private val repository by lazy {
         VaultRepository(vault::read, vault::write, vault::key, ::readLegacy, ::clearLegacy)
     }

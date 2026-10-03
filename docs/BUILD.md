@@ -15,6 +15,11 @@ Requirements:
 - Internet access for the initial Gradle/dependency download.
 - Optional Python 3 for local fixtures and the source-contract checker.
 
+The GitHub workflow explicitly initializes SDK command-line tools, then installs
+`platform-tools`, `platforms;android-36.1` and `build-tools;36.0.0` as separate quoted
+arguments. Do not pass a literal multiline package string or request the obsolete `tools`
+package. SDK license acceptance is handled by the setup action.
+
 Configure the SDK through Android Studio, `ANDROID_HOME`, or your untracked
 `local.properties`. Use the checked-in wrapper rather than a separately installed Gradle.
 
@@ -35,7 +40,7 @@ Debug signing uses Android's automatically generated debug key; no project-local
 `debug.keystore` is required.
 
 The application ID and source namespace are `com.sonix21.suinode`.
-The visible name is **S-UI Node**. Version 2.4 uses version code 6.
+The visible name is **S-UI Node**. Version 2.4.1 uses version code 7.
 This identity installs separately from previous differently identified builds; their
 encrypted profiles cannot be transferred automatically. Keep that installation until
 you have securely re-entered and verified your panel profiles in S-UI Node.

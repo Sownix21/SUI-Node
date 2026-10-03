@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -241,7 +243,6 @@ private fun BasicsTab(j: J, id: Long, volumeText: String, onVolumeChange: (Strin
     val g = LocalGlass.current
     val session = useSession()
     val data = session.data.collectAsState().value
-    val nowSec = System.currentTimeMillis() / 1000
 
     val expiryHidden = j.bool("delayStart") && !j.bool("autoReset")
 
@@ -268,17 +269,21 @@ private fun BasicsTab(j: J, id: Long, volumeText: String, onVolumeChange: (Strin
 
             if (!expiryHidden) {
                 Column {
-                    com.sonix21.suinode.ui.screens.shared.DateTimeField("Expiry", j.long("expiry")) { j.o.put("expiry", it) }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 8.dp)) {
-                        listOf("+1d" to (86400L), "+1w" to (604800L), "+1m" to (2592000L), "+1y" to (31536000L)).forEach { (label, secs) ->
-                            GhostButton(label) {
-                                val base = if (j.long("expiry") > nowSec) j.long("expiry") else nowSec
-                                val nv = base + secs
-                                j.o.put("expiry", nv)
+                    com.sonix21.suinode.ui.screens.shared.DateTimeField("Expiry", j.long("expiry"), showClear = false) { j.o.put("expiry", it) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), modifier = Modifier.fillMaxWidth().padding(top = 8.dp)) {
+                        listOf("+1d" to 86400L, "+1w" to 604800L, "+1m" to 2592000L, "+1y" to 31536000L, "∞" to 0L).forEach { (label, secs) ->
+                            FilledTonalButton(onClick = {
+                                val base = maxOf(j.long("expiry"), System.currentTimeMillis() / 1000)
+                                if (secs == 0L) j.o.put("expiry", 0L)
+                                else if (base <= Long.MAX_VALUE - secs) j.o.put("expiry", base + secs)
+                                else ToastBus.show("Expiry is outside the supported range")
+                                JsonEditSignal.bump()
+                            }, modifier = Modifier.weight(1f).heightIn(min = 48.dp).semantics {
+                                contentDescription = if (secs == 0L) "Clear expiry · unlimited" else "Extend expiry by ${secs / 86400} days"
+                            }, shape = RoundedCornerShape(16.dp), contentPadding = PaddingValues(horizontal = 2.dp, vertical = 10.dp),
+                                colors = ButtonDefaults.filledTonalButtonColors(containerColor = g.innerFill, contentColor = if (secs == 0L) g.err else g.textDim)) {
+                                Text(label, maxLines = 1, softWrap = false, fontSize = 13.sp, fontWeight = FontWeight.Medium)
                             }
-                        }
-                        GhostButton("∞", tint = g.err) {
-                            j.o.put("expiry", 0L)
                         }
                     }
                 }

@@ -1,9 +1,14 @@
 package com.sonix21.suinode.ui.screens.settings
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -30,22 +35,47 @@ private fun PinField(label: String, value: String, change: (String) -> Unit, ena
 @Composable
 fun AppPinSettings(onChanged: () -> Unit) {
     val context = LocalContext.current
-    val activity = androidx.activity.compose.LocalActivity.current as? FragmentActivity
+    val activity = androidx.activity.compose.LocalActivity.current as? com.sonix21.suinode.MainActivity
     val store = remember { AppPinStore(context.applicationContext) }
     val runner = rememberRunner()
     var configured by remember { mutableStateOf<Boolean?>(null) }
     var lock by remember { mutableStateOf(APP.prefs.appLockEnabled) }
     var biometric by remember { mutableStateOf(APP.prefs.biometricUnlockEnabled) }
     var lockAfter by remember { mutableStateOf(APP.prefs.autoLock) }
-    var expanded by remember { mutableStateOf(false) }
-    var action by remember { mutableStateOf<String?>(null) }
+    var action by remember { mutableStateOf<PinSettingsAction?>(null) }
     var prompting by remember { mutableStateOf(false) }
-    var current by remember { mutableStateOf("") }
-    var next by remember { mutableStateOf("") }
-    var repeat by remember { mutableStateOf("") }
+    var biometricError by remember { mutableStateOf<String?>(null) }
     val busy = runner.busy || prompting
-    fun clearInputs() { current = ""; next = ""; repeat = ""; action = null; expanded = false }
     fun refresh() = runner.go { configured = withContext(Dispatchers.IO) { store.configured() } }
+    fun enableBiometrics() = runner.go {
+        val host = checkNotNull(activity) { "Biometric authentication unavailable" }
+        val hasPin = withContext(Dispatchers.IO) { store.configured() }
+        check(UnlockPolicy.canEnrollBiometrics(hasPin, APP.prefs.appLockEnabled, host.access.unlocked)) {
+            "Unlock the app and set up an app PIN first"
+        }
+        biometricError = null
+        prompting = true
+        try {
+            runBiometricGate(host, onSuccess = {
+                prompting = false
+                runner.go {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        // Recheck dependencies after the Android prompt, before persisting the opt-in.
+                        check(UnlockPolicy.canEnrollBiometrics(store.configured(), APP.prefs.appLockEnabled, host.access.unlocked)) {
+                            "Unlock the app and set up an app PIN first"
+                        }
+                        APP.prefs.setLockState(true, true)
+                    }
+                    biometric = true; onChanged()
+                }
+            }, onError = {
+                prompting = false; biometricError = it
+            }, enrollment = true)
+        } catch (error: Exception) {
+            prompting = false
+            throw error
+        }
+    }
     LaunchedEffect(Unit) { refresh() }
     GlassCard { Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         SectionHeader("App lock & PIN")
@@ -59,18 +89,19 @@ fun AppPinSettings(onChanged: () -> Unit) {
         else {
             if (configured == true) {
                 SwitchRow("App lock", lock, { enable ->
-                    if (!busy) { action = if (enable) "lock-on" else "lock-off"; current = ""; expanded = false }
+                    if (!busy) action = if (enable) PinSettingsAction.ENABLE_LOCK else PinSettingsAction.DISABLE_LOCK
                 }, subtitle = "Changes require your current app PIN")
                 if (lock) {
                     SwitchRow("Biometric unlock", biometric, { enable ->
                         if (!busy) {
-                            if (enable) { action = "biometric-on"; current = ""; expanded = false }
+                            if (enable) enableBiometrics()
                             else runner.go {
                                 withContext(NonCancellable + Dispatchers.IO) { APP.prefs.setLockState(lock, false) }
-                                biometric = false; onChanged()
+                                biometric = false; biometricError = null; onChanged()
                             }
                         }
-                    }, subtitle = "Requires an app PIN and Android strong biometrics; PIN fallback stays available")
+                    }, subtitle = "Confirm with Android biometrics. Your configured app PIN stays available as fallback.")
+                    biometricError?.let { Text(it, color = LocalGlass.current.err) }
                 }
             }
             if (lock) {
@@ -78,72 +109,87 @@ fun AppPinSettings(onChanged: () -> Unit) {
                     onChange = { policy -> if (policy != null) { lockAfter = policy; APP.prefs.autoLock = policy } })
                 Text("Screen-off always locks the app. A fresh app process also requires authentication. Timed presets keep this session unlocked briefly while switching apps or choosing a backup file.", color = LocalGlass.current.textFaint)
             }
-            GhostButton(if (expanded) "Close PIN settings" else if (configured == true) "Change app PIN" else "Set up app PIN", enabled = !busy) {
-                val open = !expanded; clearInputs(); expanded = open
+            GhostButton(if (configured == true) "Change app PIN" else "Set up app PIN", enabled = !busy) {
+                action = PinSettingsAction.SET
             }
-            if (expanded) {
-                if (configured == true) PinField("Current app PIN", current, { current = it }, !busy)
-                PinField("New app PIN", next, { next = it }, !busy)
-                PinField("Confirm new app PIN", repeat, { repeat = it }, !busy)
-                PrimaryButton("Save app PIN", enabled = !busy && next.length >= 8 && next == repeat, loading = runner.busy) { runner.go {
-                    val pin = next.toCharArray(); val previous = current.toCharArray()
-                    try { withContext(NonCancellable + Dispatchers.IO) {
-                        store.set(pin, previous)
-                        APP.prefs.setLockState(true)
-                    } }
-                    finally { pin.fill('\u0000'); previous.fill('\u0000') }
-                    configured = true; lock = true; clearInputs(); onChanged()
-                    ToastBus.show("App PIN saved; app lock enabled")
-                } }
-            }
-            if (configured == true) GhostButton("Remove app PIN", enabled = !busy) { clearInputs(); action = "remove" }
-            action?.let { pending ->
-                Text(when (pending) {
-                    "remove" -> "Removing the PIN also turns off app lock and biometrics. Your panel profiles remain encrypted."
-                    "lock-off" -> "Turn off app lock and biometric unlock? Your PIN will be kept for re-enabling the lock."
-                    "biometric-on" -> "Verify your app PIN, then confirm your biometric."
-                    else -> "Verify your app PIN to enable app lock."
-                }, color = LocalGlass.current.textDim)
-                PinField("Current app PIN", current, { current = it }, !busy)
-                PrimaryButton(if (pending == "remove") "Remove PIN and disable app lock" else "Confirm with app PIN",
-                    enabled = !busy && current.length >= 8, loading = runner.busy) { runner.go {
-                    val entered = current.toCharArray(); current = ""
-                    try {
-                        withContext(NonCancellable + Dispatchers.IO) {
-                            if (pending == "remove") store.remove(entered) {
-                                APP.prefs.setLockState(false, false)
-                            }
-                            else check(store.verify(entered)) { "Incorrect app PIN" }
-                            if (pending == "lock-on" || pending == "lock-off") {
-                                APP.prefs.setLockState(pending == "lock-on")
-                            }
-                        }
-                    } finally { entered.fill('\u0000') }
-                    if (pending == "biometric-on") {
-                        checkNotNull(activity) { "Biometric authentication unavailable" }
-                        prompting = true
-                        runBiometricGate(activity, onSuccess = {
-                            prompting = false
-                            runner.go {
-                                withContext(NonCancellable + Dispatchers.IO) {
-                                    check(store.configured()) { "Set up an app PIN first" }
-                                    APP.prefs.setLockState(true, true)
-                                }
-                                biometric = true; action = null; onChanged()
-                            }
-                        }, onError = { prompting = false; ToastBus.show(it) })
-                    } else {
-                        lock = pending == "lock-on"
-                        if (!lock) biometric = false
-                        if (pending == "remove") configured = false
-                        clearInputs(); onChanged()
-                    }
-                } }
-                GhostButton("Cancel", enabled = !busy) { clearInputs() }
+            if (configured == true) GhostButton("Remove app PIN", enabled = !busy) {
+                action = PinSettingsAction.REMOVE
             }
             Text("The PIN is stored as a salted PBKDF2 verifier inside a separate encrypted, device-bound vault. Repeated failures impose increasing delays. Keep your PIN safe: biometrics do not replace it, and changing or removing it requires the current PIN.", color = LocalGlass.current.textFaint)
         }
     } }
+    action?.let { pending ->
+        key(pending) {
+            PinSettingsDialog(pending, configured == true, store, onDismiss = { action = null }, onSaved = {
+                if (pending == PinSettingsAction.SET) configured = true
+                if (pending == PinSettingsAction.REMOVE) configured = false
+                lock = APP.prefs.appLockEnabled
+                biometric = APP.prefs.biometricUnlockEnabled
+                biometricError = null; action = null; onChanged()
+            })
+        }
+    }
+}
+
+private enum class PinSettingsAction { SET, ENABLE_LOCK, DISABLE_LOCK, REMOVE }
+
+/** Confirmation is independent of the settings scroll position; only the form body scrolls. */
+@Composable
+private fun PinSettingsDialog(action: PinSettingsAction, hasPin: Boolean, store: AppPinStore,
+    onDismiss: () -> Unit, onSaved: () -> Unit) {
+    val runner = rememberRunner()
+    var current by remember { mutableStateOf("") }
+    var next by remember { mutableStateOf("") }
+    var repeat by remember { mutableStateOf("") }
+    val setting = action == PinSettingsAction.SET
+    val title = when (action) {
+        PinSettingsAction.SET -> if (hasPin) "Change app PIN" else "Set up app PIN"
+        PinSettingsAction.REMOVE -> "Remove app PIN"
+        else -> "App lock"
+    }
+    val confirm = when (action) {
+        PinSettingsAction.SET -> "Save app PIN"
+        PinSettingsAction.REMOVE -> "Remove PIN and disable app lock"
+        else -> "Confirm with app PIN"
+    }
+    val valid = (!hasPin || current.length >= 8) && (!setting || (next.length >= 8 && next == repeat))
+    AlertDialog(onDismissRequest = { if (!runner.busy) onDismiss() }, containerColor = LocalGlass.current.surface,
+        title = { Text(UiLocale.text(title)) }, text = {
+            Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                runner.error?.let { Text(it, color = LocalGlass.current.err) }
+                if (!setting) Text(UiLocale.text(when (action) {
+                    PinSettingsAction.REMOVE -> "Removing the PIN also turns off app lock and biometrics. Your panel profiles remain encrypted."
+                    PinSettingsAction.DISABLE_LOCK -> "Turn off app lock and biometric unlock? Your PIN will be kept for re-enabling the lock."
+                    else -> "Verify your app PIN to enable app lock."
+                }), color = LocalGlass.current.textDim)
+                if (hasPin) PinField("Current app PIN", current, { current = it }, !runner.busy)
+                if (setting) {
+                    PinField("New app PIN", next, { next = it }, !runner.busy)
+                    PinField("Confirm new app PIN", repeat, { repeat = it }, !runner.busy)
+                }
+            }
+        }, confirmButton = {
+            TextButton(enabled = !runner.busy && valid, onClick = { runner.go {
+                val entered = current.toCharArray(); val pin = next.toCharArray()
+                current = ""; next = ""; repeat = ""
+                try {
+                    withContext(NonCancellable + Dispatchers.IO) {
+                        when (action) {
+                            PinSettingsAction.SET -> { store.set(pin, entered); APP.prefs.setLockState(true) }
+                            PinSettingsAction.REMOVE -> store.remove(entered) { APP.prefs.setLockState(false, false) }
+                            else -> {
+                                check(store.verify(entered)) { "Incorrect app PIN" }
+                                APP.prefs.setLockState(action == PinSettingsAction.ENABLE_LOCK)
+                            }
+                        }
+                    }
+                } finally { entered.fill('\u0000'); pin.fill('\u0000') }
+                if (setting) ToastBus.show("App PIN saved; app lock enabled")
+                onSaved()
+            } }) { Text(UiLocale.text(confirm)) }
+        }, dismissButton = {
+            TextButton(enabled = !runner.busy, onClick = onDismiss) { Text(UiLocale.text("Cancel")) }
+        })
 }
 
 @Composable

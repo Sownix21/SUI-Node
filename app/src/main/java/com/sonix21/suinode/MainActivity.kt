@@ -80,7 +80,7 @@ class MainActivity : FragmentActivity() {
 
 /** Device credentials are accepted only to migrate an existing biometric-only lock. */
 fun runBiometricGate(activity: FragmentActivity, onSuccess: () -> Unit, onError: (String) -> Unit,
-    legacyMigration: Boolean = false) {
+    legacyMigration: Boolean = false, enrollment: Boolean = false) {
     val manager = BiometricManager.from(activity)
     val authenticators = if (legacyMigration)
         BiometricManager.Authenticators.BIOMETRIC_WEAK or BiometricManager.Authenticators.DEVICE_CREDENTIAL
@@ -98,8 +98,12 @@ fun runBiometricGate(activity: FragmentActivity, onSuccess: () -> Unit, onError:
     })
     val builder = BiometricPrompt.PromptInfo.Builder()
         .setTitle("S-UI Node")
-        .setSubtitle(if (legacyMigration) "Verify your existing lock before setting up an app PIN" else "Use biometrics or return to your app PIN")
+        .setSubtitle(when {
+            legacyMigration -> "Verify your existing lock before setting up an app PIN"
+            enrollment -> "Confirm to enable biometric unlock"
+            else -> "Use biometrics or return to your app PIN"
+        })
         .setAllowedAuthenticators(authenticators)
-    if (!legacyMigration) builder.setNegativeButtonText("Use app PIN")
+    if (!legacyMigration) builder.setNegativeButtonText(if (enrollment) "Cancel" else "Use app PIN")
     prompt.authenticate(builder.build())
 }

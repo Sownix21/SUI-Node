@@ -1,6 +1,7 @@
 package com.sonix21.suinode.ui.shared
 
 import android.graphics.Bitmap
+import androidx.core.graphics.createBitmap
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
@@ -92,12 +93,11 @@ object Qr {
     fun bitmap(content: String, sizePx: Int = 512): Bitmap {
         val hints = mapOf(EncodeHintType.MARGIN to 1, EncodeHintType.CHARACTER_SET to "UTF-8")
         val matrix = QRCodeWriter().encode(content, BarcodeFormat.QR_CODE, sizePx, sizePx, hints)
-        val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-        for (x in 0 until sizePx) {
-            for (y in 0 until sizePx) {
-                bmp.setPixel(x, y, if (matrix.get(x, y)) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
-            }
+        val bmp = createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
+        val pixels = IntArray(sizePx * sizePx) { index ->
+            if (matrix.get(index % sizePx, index / sizePx)) android.graphics.Color.BLACK else android.graphics.Color.WHITE
         }
+        bmp.setPixels(pixels, 0, sizePx, 0, 0, sizePx, sizePx)
         return bmp
     }
 }

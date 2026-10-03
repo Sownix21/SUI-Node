@@ -1,7 +1,7 @@
 package com.sonix21.suinode.ui.screens.settings
 
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -112,7 +112,7 @@ private fun AboutSheet(onDismiss: () -> Unit) {
                 horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
                 Text("Developed by SONIX", color = g.teal, fontWeight = FontWeight.SemiBold, fontSize = 14.sp)
                 IconButton(onClick = {
-                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Sownix21"))) }
+                    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, "https://github.com/Sownix21".toUri())) }
                         .onFailure { ToastBus.show(if (fa) "مرورگری برای باز کردن پیوند در دسترس نیست" else "No browser available to open the profile") }
                 }) {
                     Icon(painterResource(R.drawable.ic_github),

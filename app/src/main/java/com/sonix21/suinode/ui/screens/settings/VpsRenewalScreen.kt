@@ -42,8 +42,9 @@ fun VpsRenewalScreen(nav: NavController, panelId: String) {
             runner.error?.let { Text(it, color = LocalGlass.current.err) }
             SwitchRow("VPS renewal reminders", c.enabled, { config = c.copy(enabled=it) })
             if (c.enabled) {
-                GlassTextField("Next renewal (yyyy-MM-dd)", c.due, { config = c.copy(due=UnlockPolicy.normalizePin(it),anchorDay=0) })
-                Text("Use a Gregorian date. The reminder follows the selected billing timezone.", color = LocalGlass.current.textFaint)
+                com.sonix21.suinode.ui.screens.shared.CalendarDateField("Next renewal", c.due, java.time.ZoneId.of(c.zone)) {
+                    if (it != c.due) config = c.copy(due = it, anchorDay = 0)
+                }
                 SelectField("Billing period", c.schedule, listOf(Opt("Monthly","monthly"), Opt("Quarterly","quarterly"), Opt("Yearly","yearly"), Opt("Custom days","custom")),
                     clearable=false, onChange={ config=c.copy(schedule=it ?: c.schedule) })
                 if(c.schedule=="custom") NumberField("Custom billing period",c.customDays.toLong(),suffix="days",onChange={config=c.copy(customDays=(it?:30).coerceIn(1,3650).toInt())})

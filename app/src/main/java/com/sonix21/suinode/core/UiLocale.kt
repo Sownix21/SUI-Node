@@ -50,6 +50,10 @@ object UiLocale {
         "Now / continue current tracking" to "اکنون / ادامه پایش فعلی", "Reset hour" to "ساعت بازنشانی",
         "Reset minute" to "دقیقه بازنشانی", "Monthly reset day" to "روز بازنشانی ماهانه",
         "Billing timezone" to "منطقه زمانی دوره مصرف",
+        "Next renewal" to "تاریخ تمدید بعدی", "Choose date" to "انتخاب تاریخ",
+        "Gregorian calendar" to "تقویم میلادی", "Billing reset time" to "ساعت بازنشانی دوره مصرف",
+        "Quiet from" to "شروع ساعات سکوت", "Quiet until" to "پایان ساعات سکوت",
+        "Hour" to "ساعت",
     )
 
     fun text(value: String): String {

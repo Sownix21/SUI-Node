@@ -78,9 +78,8 @@ fun VpsQuotaScreen(nav: NavController, panelId: String) {
                 if (c.mode in setOf("send", "separate")) GlassTextField("Send limit (GB)", sendLimit, { sendLimit = it })
                 NumberField("Monthly reset day", c.resetDay.toLong(), suffix = "1–31", onChange = { c = c.copy(resetDay = (it ?: 1).coerceIn(1, 31).toInt()) })
                 Text("Days 29–31 use the month's last day when needed. Set the provider's reset time in the billing timezone.", color = LocalGlass.current.textFaint)
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    NumberField("Reset hour", c.resetHour.toLong(), suffix = "0–23", modifier = Modifier.weight(1f), onChange = { c = c.copy(resetHour = (it ?: 0).coerceIn(0, 23).toInt()) })
-                    NumberField("Reset minute", c.resetMinute.toLong(), suffix = "0–59", modifier = Modifier.weight(1f), onChange = { c = c.copy(resetMinute = (it ?: 0).coerceIn(0, 59).toInt()) })
+                com.sonix21.suinode.ui.screens.shared.ClockField("Billing reset time", c.resetHour, c.resetMinute) { hour, minute ->
+                    c = c.copy(resetHour = hour, resetMinute = minute)
                 }
                 SelectField("Billing timezone", c.zone, zones, clearable = false, onChange = { c = c.copy(zone = it ?: c.zone) })
                 Text("Next reset: " + java.time.Instant.ofEpochSecond(VpsQuota.nextReset(System.currentTimeMillis() / 1000, c))

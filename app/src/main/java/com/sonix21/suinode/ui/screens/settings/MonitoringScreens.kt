@@ -2,7 +2,7 @@ package com.sonix21.suinode.ui.screens.settings
 
 import android.Manifest
 import android.content.Intent
-import android.net.Uri
+import androidx.core.net.toUri
 import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -56,7 +56,7 @@ fun MonitoringScreen(nav: NavController) {
     if (c == null) { RecordLoadingPage("Monitoring", nav, runner) { refresh() }; return }
     var expiryUnit by remember { mutableStateOf(if (c.expiryHours % 24 == 0L) "days" else "hours") }
     fun openSettings(action: String, packageUri: Boolean = false) {
-        runCatching { context.startActivity(Intent(action).apply { if (packageUri) data = Uri.parse("package:${context.packageName}") }) }
+        runCatching { context.startActivity(Intent(action).apply { if (packageUri) data = "package:${context.packageName}".toUri() }) }
             .onFailure { ToastBus.show("This settings page is unavailable. Open your device's app settings manually.") }
     }
     PageScaffold("Monitoring & alerts", nav, busy = runner.busy, draftValue = { config?.toJson() }, primaryAction = {
@@ -102,8 +102,8 @@ fun MonitoringScreen(nav: NavController) {
                     Text("New alerts are detected at the check interval. Repeat controls reminders for conditions already reported; 0 means notify once until the condition resolves or worsens. A renewed client can still be inside your warning window, but an extension does not trigger another immediate warning.", color = LocalGlass.current.textFaint)
                     SwitchRow("Quiet hours", c.quiet, { config = c.copy(quiet = it) })
                     if (c.quiet) {
-                        NumberField("Quiet from", c.quietStart.toLong(), suffix = "hour (0–23)", onChange = { config = c.copy(quietStart = (it ?: 22).coerceIn(0, 23).toInt()) })
-                        NumberField("Quiet until", c.quietEnd.toLong(), suffix = "hour (0–23)", onChange = { config = c.copy(quietEnd = (it ?: 8).coerceIn(0, 23).toInt()) })
+                        com.sonix21.suinode.ui.screens.shared.ClockField("Quiet from", c.quietStart, hoursOnly = true) { hour, _ -> config = c.copy(quietStart = hour) }
+                        com.sonix21.suinode.ui.screens.shared.ClockField("Quiet until", c.quietEnd, hoursOnly = true) { hour, _ -> config = c.copy(quietEnd = hour) }
                         Text("Uses this phone's local time. Equal hours disable the quiet window. Active alerts are delivered on a later check after quiet hours.", color = LocalGlass.current.textFaint)
                     }
                     SwitchRow("Show names in notifications", c.showNames, { config = c.copy(showNames = it) }, subtitle = "Off keeps panel/client names inside the protected app")

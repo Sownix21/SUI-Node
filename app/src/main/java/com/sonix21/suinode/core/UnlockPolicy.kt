@@ -4,6 +4,10 @@ package com.sonix21.suinode.core
 enum class UnlockMode { LOADING, PIN, PIN_AND_BIOMETRIC, LEGACY_MIGRATION, PIN_UNAVAILABLE }
 
 object UnlockPolicy {
+    /** Enrollment still needs a configured fallback PIN and an already authenticated session. */
+    fun canEnrollBiometrics(configured: Boolean?, lockEnabled: Boolean, sessionUnlocked: Boolean): Boolean =
+        configured == true && lockEnabled && sessionUnlocked
+
     fun mode(configured: Boolean?, pinFirst: Boolean, biometric: Boolean): UnlockMode = when {
         configured == null -> UnlockMode.LOADING
         configured -> if (biometric) UnlockMode.PIN_AND_BIOMETRIC else UnlockMode.PIN

@@ -22,10 +22,10 @@ def adb(*args):
 
 
 def snapshot():
-    output = adb("shell", "uiautomator", "dump", "/sdcard/sui-node-ui.xml")
+    output = adb("shell", "uiautomator", "dump", "/data/local/tmp/sui-node-ui.xml")
     if "dumped to" not in output:
         raise RuntimeError("No fresh accessibility snapshot: " + output)
-    return ET.fromstring(adb("exec-out", "cat", "/sdcard/sui-node-ui.xml"))
+    return ET.fromstring(adb("exec-out", "cat", "/data/local/tmp/sui-node-ui.xml"))
 
 
 def center(node):
@@ -47,10 +47,11 @@ def locate(root, label, field=False):
 
 
 if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
     action = sys.argv[1]
     if action == "screenshot":
-        adb("shell", "screencap", "-p", "/sdcard/sui-node-qa.png")
-        print(adb("pull", "/sdcard/sui-node-qa.png", sys.argv[2]))
+        adb("shell", "screencap", "-p", "/data/local/tmp/sui-node-qa.png")
+        print(adb("pull", "/data/local/tmp/sui-node-qa.png", sys.argv[2]))
     else:
         root = snapshot()
         if action == "dump":

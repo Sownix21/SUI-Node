@@ -1,8 +1,37 @@
 # APIv2 alignment and verification
 
-## Current verification — 2.4 / September 30, 2026
+## Post-device-test PIN/biometric follow-up — October 2, 2026
 
-Version **2.4 (6)** targets the supplied **s-ui 1.6.3** backend and frontend
+Source changes after the signed-device checks below move PIN setup, change, removal and
+lock confirmations into a modal, scrollable form with separate confirmation/cancel actions.
+Biometric enrollment now opens Android's strong-biometric prompt directly, without an
+extra app-PIN entry. It still checks for a configured fallback PIN, enabled app lock and
+an unlocked session before prompting and again before persisting a successful opt-in.
+Cancellation/error callbacks do not enable biometrics. The signed APK and historical hashes
+below describe the preceding build, not this follow-up. The new popup layout and enrollment
+behavior still require a freshly signed device update for physical-device acceptance.
+
+Follow-up verification completed:
+
+- All **137 JVM tests** passed across 20 suites, with zero failures/errors, including the
+  biometric enrollment prerequisite matrix.
+- Debug/release lint passed with **0 errors and 2 toolchain-update warnings** each.
+  The initial internal lint-analyzer failure did not recur in the completed build.
+- `testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease`
+  completed successfully offline. Debug APK, optimized unsigned release APK and AAB were
+  produced. The release APK passes 16 KB ZIP alignment.
+- The APIv2 registry comparison passed against the supplied s-ui 1.6.3 sources.
+- No live panel writes, phone-setting changes or production-key access occurred.
+
+| Follow-up artifact | SHA-256 |
+| --- | --- |
+| Debug APK | `24f9311a814b5a3a3d56913f3ed0abc0494dfba35c3a1901f9d1333a7b394ee4` |
+| Unsigned release APK | `618acfe62320ea8c480ae9c18c186f3460d94c7b0792ca1b7883cd8c8bcf35a5` |
+| Unsigned release AAB | `f8a9fda1f19d5bf99c911cb0aa763e210e9dcb1c328dc0f68ed7148f47fb98e1` |
+
+## Pre-follow-up verification — 2.4.1 / October 1, 2026
+
+Version **2.4.1 (7)** targets the supplied **s-ui 1.6.3** backend and frontend
 `f859e16953cd733293618f626cc19b8466e00fd3`; its backend declares sing-box **1.14.1**.
 See [the compatibility review](PANEL-1.6.3.md) for the changed API contracts and forms.
 The older checks below are retained as history, not evidence that every earlier acceptance
@@ -12,18 +41,100 @@ case was repeated for this release.
 
 - `testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease`
   completed successfully with the checked-in Gradle wrapper.
-- **119 JVM tests passed**, with zero failures/errors across 19 suites.
-- Debug and release lint each reported **0 errors, 36 warnings**. Warnings concern newer
-  dependency/tool versions, KTX/version-catalog suggestions, and application-context-backed
-  PanelStore singleton references. They are not hidden by a new lint baseline.
+- **136 JVM tests passed**, with zero failures/errors across 20 suites. Added coverage
+  includes PIN-first policy, expiry-extension deduplication, stale monitoring snapshots,
+  notification failures, scheduled quota baselines, clock rollback, billing dates and DST.
+- Debug and release lint each reported **0 errors, 2 warnings** in the offline build.
+  The remaining findings recommend newer Gradle and Kotlin Compose plugin versions.
+  Online dependency-update advisories can vary with repository availability. No lint
+  baseline was added. The two targeted KTX suppressions preserve checked synchronous
+  commits for lock-state changes and monitoring scheduling, where ignoring failure is unsafe.
 - APIv2 registry comparison passed: **19 GET actions, 10 POST actions, 27 writable settings**.
   Frontend selectors matched **19 inbound, 19 outbound and 13 DNS types**. This checks the
   registries, not every configuration or protocol at runtime.
-- The release APK reports `com.sonix21.suinode`, version 2.4, `debuggable=false`;
-  R8 minification/resource shrinking completed. A test-signed copy passed v2/v3 signature
-  verification and 16 KB ZIP-alignment checks.
+- R8 minification/resource shrinking and debug APK, unsigned release APK and AAB builds
+  completed. The release is non-debuggable, passes 16 KB APK ZIP alignment, and its packaged
+  native libraries have 16 KB-aligned ELF LOAD segments. Production signature verification
+  still requires the owner's signed output. A separate debug-key QA copy of the final
+  optimized APK passed v2/v3 signature verification; it is not a production distributable.
+- The workflow installs SDK tools before invoking `sdkmanager`, with an empty action
+  package input and three separately quoted SDK arguments. The action is pinned to its
+  verified v4 commit. Checksum-verified actionlint 1.7.12 passed locally (without optional
+  ShellCheck/Pyflakes integration); a hosted GitHub Actions run has not been triggered or verified here.
+- The Persian README was rendered locally: all nine main headings and three tables inherit
+  RTL direction; URL examples remain LTR. A local browser preview was visually inspected.
+- Local documentation links resolve. Source scanning found no old application name or
+  package identity, and Git tracks no APK/AAB, keystore or local SDK-properties file.
 
-### Physical-device results
+### October 2 production-signed device follow-up
+
+The owner's SONIX-signed **2.4.1 (7)** is installed on the Mi 9T Pro / Android 11.
+The installed APK matches the local signed release byte-for-byte (SHA-256
+`842436890648581b7c2ed664afd4451e0bec1da6432e7e3f37c762b38fc00dbd`).
+Its v2 signature verifies, and 16 KB APK ZIP alignment passes. No signing key was accessed.
+
+Read/navigation checks completed on this signed build:
+
+- Overview connected and populated clients/inbounds. An existing client editor loaded.
+- All five expiry shortcuts, including infinity, occupy the same row. The date and time
+  popups opened; cancellation did not change expiry. Returning to Clients restored the
+  same edit-action bounds at the previously scrolled list position.
+- Endpoint latency status occupies a readable single line, with actions in a separate
+  row. WARP has no sharing action; WireGuard with peers offers peer sharing. No probe ran.
+- The Services empty state and an unsaved new-service form opened successfully.
+- The VPS renewal calendar, billing-reset time popup and quiet-hours hour-only popup
+  opened in unsaved local drafts. Drafts were discarded without saving. Reopening renewal
+  confirmed it remained disabled. Monitoring and quota tracking were not enabled.
+- No app-process AndroidRuntime crash entries appeared during these checks.
+
+The owner authorized a temporary PIN/biometric lock and backup regression test. PIN
+enrollment and biometric enrollment succeeded with owner authentication. The PIN confirmation
+form was initially below the visible area; scrolling to it resolved the setup confusion.
+The source follow-up above replaces that inline form with a popup; device verification
+of the replacement still requires a newly signed APK.
+
+With the **Immediately** preset, the app locked after the backup destination picker.
+Both PIN and biometric unlock remained available. The owner authenticated with a fingerprint;
+the queued download resumed automatically. Reopening backup tools showed **Backup saved
+(1.29 MB)**, and the distinct test output measured **1,355,776 bytes**. App-process
+AndroidRuntime output contained zero error entries. This test used **Exclude traffic graphs**;
+it does not establish that the earlier full-backup server SQL limit is fixed. No backup
+contents were inspected or copied to the host. An earlier attempt interrupted by tool
+approval limits also left a 1,355,776-byte test file, but only the repeated attempt has a
+directly observed completion message.
+
+The owner removed the temporary PIN. The settings screen again offered PIN setup, and
+leaving/reopening the app returned directly to the connected dashboard without a lock
+prompt, confirming restoration of the original no-PIN/lock-off/biometrics-off state.
+Both named test backups were deleted from Downloads with the owner's explicit approval;
+no regular backups were touched. No live panel POST, restart, restore or configuration save
+was submitted. Notification
+delivery, all protocol write/connect combinations and the wider Android/OEM matrix are
+not certified by this read/navigation pass. A minor TalkBack wording defect was observed:
+the one-day expiry shortcut says “Extend expiry by 1 days”; the action itself is unchanged.
+
+### October 1 physical-device follow-up
+
+The owner's installed SONIX-signed 2.4 build was inspected on the Mi 9T Pro. Opened Clients
+and an existing editor without modifying it, confirmed the infinity shortcut wrapped below
+the four duration shortcuts, and returned to the list. App-process AndroidRuntime output
+contained zero error/crash entries. No live panel write or local monitoring opt-in occurred.
+
+The installed certificate differs from the local debug key. No replacement, uninstall,
+data clearing or signing-key access was attempted. The compact five-button row, VPS calendar
+and clock popups built today have **not** been installed on that phone; they require a new
+APK signed with the owner's existing identity. PIN enrollment/migration and background
+delivery still need owner/device acceptance checks.
+
+The signed 2.4 installation was opened again during the final follow-up; its app-process
+AndroidRuntime output contained zero error entries. The temporary Android 36.1 emulator
+had system-app ANR dialogs during startup. After recovery, the optimized 2.4.1 QA copy
+opened its empty Panels page and Add Panel form without app-process crash entries.
+Only a synthetic loopback profile draft was entered. No new editor, calendar, PIN or
+monitoring acceptance test completed. The owner explicitly deferred further testing to
+a later production-signed device build; the temporary emulator and fixture were stopped.
+
+### September 30 physical-device results (preceding build)
 
 The endpoint-card layout was subsequently adjusted after the owner reported broken-word
 wrapping in the latency status. Status and actions now occupy separate rows, and actions
@@ -53,13 +164,13 @@ live configuration save, disconnect, restart, maintenance change, restore or pro
 performed. App-process AndroidRuntime logs were checked for crashes during this smoke test.
 The phone's test-signed build is **not a production-signed distributable**.
 
-### Current artifact hashes
+### Pre-follow-up artifact hashes
 
 | Artifact | SHA-256 |
 | --- | --- |
-| Debug APK | `c30c368984bbef255cdfcd5fcea7eb5fd1a7cacd703ac64c4db1cd94a917219a` |
-| Unsigned release APK | `c8c233db6fbd4c8d3f766ac2da9702fdaf1f910776134ce853e49d0906b573bd` |
-| Unsigned release AAB | `5f691059dbdb6d40d27731894c15115fb105da08436a5d76e472ad549b19e297` |
+| Debug APK | `bdf198903937b2ca14b8e5070dd35d8acdf0facbdd17d8a82bfced56cea2e096` |
+| Unsigned release APK | `504e2a7f95358d1714bc0bdd234c476445d881085cf63c0572a5d96bbd5a8ab8` |
+| Unsigned release AAB | `ecfb3ac6ad6c13838b6446098a5939e0d53e01b0560da1ff6b9304fb8d95cb21` |
 
 ### Still required before a production release
 

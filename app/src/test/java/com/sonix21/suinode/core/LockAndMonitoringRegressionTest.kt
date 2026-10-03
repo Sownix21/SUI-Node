@@ -5,6 +5,23 @@ import org.junit.Test
 import java.time.Instant
 
 class LockAndMonitoringRegressionTest {
+    @Test fun biometricEnrollmentRequiresPinLockAndUnlockedSession() {
+        for (configured in listOf(null, false, true)) {
+            for (lock in listOf(false, true)) for (unlocked in listOf(false, true)) {
+                assertEquals(configured == true && lock && unlocked,
+                    UnlockPolicy.canEnrollBiometrics(configured, lock, unlocked))
+            }
+        }
+    }
+
+    @Test fun billingCalendarSelectionPreservesDateAcrossTimezonesAndLeapDays() {
+        for (date in listOf("2028-02-29", "2026-12-31", "2027-01-01")) {
+            val picked = DateTimeInput.pickerDate(date)
+            assertEquals(date, DateTimeInput.calendarDate(picked))
+            assertEquals(Instant.parse("${date}T00:00:00Z").toEpochMilli(), picked)
+        }
+        assertTrue(runCatching { DateTimeInput.pickerDate("2026-02-29") }.isFailure)
+    }
     @Test fun aClientSaveInvalidatesOnlyItsPanelsPendingSnapshot() {
         val panel = "freshness-test"
         val before = ClientAlertFreshness.version(panel)

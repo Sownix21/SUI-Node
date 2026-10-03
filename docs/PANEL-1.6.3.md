@@ -4,6 +4,16 @@ Reviewed September 30, 2026 against the supplied backend reporting 1.6.3 and fro
 `f859e16953cd733293618f626cc19b8466e00fd3` reporting 1.6.3. The backend declares sing-box
 1.14.1. This records the local snapshots, not a guarantee about every upstream deployment.
 
+October 1 follow-up: rechecked the folder the owner identified as the updated reference.
+It still reports 1.6.3; routes/settings/protocol selectors remain unchanged. The local tree
+does not contain `cmd/migration/1_6_4.go` and still copies the legacy ECH fields in
+`util/outJson.go`. The separately reviewed upstream commit
+[`84854f8`](https://github.com/alireza0/s-ui/commit/84854f87b21a7e1b494bc26d00643b782c3f70e2)
+removes `pq_signature_schemes_enabled` and `dynamic_record_sizing_disabled` from persisted
+server ECH/generated outbounds and stops copying them. It introduces no new APIv2 route
+or form input. The app's structured ECH controls already omit both options; backend-side
+migration is responsible for cleaning old persisted data. No live migration was run here.
+
 ## APIv2 and response formats
 
 - 19 GET actions, 10 POST actions and 27 writable settings match the supplied backend.

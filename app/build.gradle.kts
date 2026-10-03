@@ -36,8 +36,8 @@ android {
     applicationId = "com.sonix21.suinode"
     minSdk = 26
     targetSdk = 36
-    versionCode = 6
-    versionName = "2.4"
+    versionCode = 7
+    versionName = "2.4.1"
   }
 
   signingConfigs {
@@ -83,16 +83,16 @@ dependencies {
   implementation(libs.androidx.compose.material.icons.extended)
   implementation(libs.kotlinx.coroutines.android)
   implementation(libs.kotlinx.coroutines.core)
-  implementation("androidx.work:work-runtime-ktx:2.11.2")
+  implementation(libs.androidx.work.runtime.ktx)
   implementation(libs.okhttp)
   implementation(libs.zxing.core)
-  implementation("org.snakeyaml:snakeyaml-engine:2.10")
+  implementation(libs.snakeyaml.engine)
   implementation(libs.androidx.biometric)
   // Legacy Fragment (pulled by Biometric) rejects modern Activity Result request codes.
-  implementation("androidx.fragment:fragment-ktx:1.8.9")
+  implementation(libs.androidx.fragment.ktx)
   implementation(libs.androidx.security.crypto)
   debugImplementation(libs.androidx.compose.ui.tooling)
   testImplementation(libs.junit)
   testImplementation(libs.json)
-  testImplementation("com.squareup.okhttp3:okhttp-tls:4.10.0")
+  testImplementation(libs.okhttp.tls)
 }

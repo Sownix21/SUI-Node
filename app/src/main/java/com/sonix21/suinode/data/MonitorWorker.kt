@@ -26,6 +26,8 @@ object MonitoringScheduler {
     private const val ONCE = "sui-node-monitor-now"
     private fun prefs(context: Context) = context.getSharedPreferences("monitor_schedule", Context.MODE_PRIVATE)
     fun enabled(context: Context) = prefs(context).getBoolean("enabled", false)
+    // Scheduling must stop if the synchronous preference commit fails; KTX discards its result.
+    @android.annotation.SuppressLint("UseKtx")
     fun configure(context: Context, config: MonitorConfig) {
         check(prefs(context).edit().putBoolean("enabled", config.enabled).putLong("minutes", config.intervalMinutes).commit())
         reconcile(context)

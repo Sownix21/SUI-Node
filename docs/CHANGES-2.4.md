@@ -1,4 +1,4 @@
-# S-UI Node 2.4
+# S-UI Node 2.4.1
 
 Compatibility update for the supplied s-ui 1.6.3 backend/frontend and sing-box 1.14.1.
 
@@ -32,12 +32,31 @@ Compatibility update for the supplied s-ui 1.6.3 backend/frontend and sing-box 1
   preserved monitoring drafts, lazy alert-history rendering and failed-delivery retries.
 - Comprehensive Persian README alongside the English product guide. Removed the separate
   contribution guide and its source-export entry.
+- Compact client expiry shortcuts keep the infinity action in the same row. VPS renewal
+  dates use a calendar popup without timezone-driven date shifts; billing reset time and
+  quiet hours have popup controls. Cancel does not change the saved draft value.
+- Persian documentation now has explicit RTL layout and isolated Latin names/addresses.
+- GitHub workflow initializes SDK tools and passes SDK packages separately, avoiding the
+  missing `sdkmanager`, obsolete `tools` and multiline-package errors.
+- App-wide profile storage retains only the Application context. QR images use a single
+  bulk pixel upload, avoiding hundreds of thousands of individual bitmap calls.
+- Quiet-hours popups offer whole-hour choices instead of accepting and discarding minutes.
+- Version code 7 provides an upgrade path from 2.4 (6) when signed with the same owner key.
+- Follow-up: PIN setup/change/removal and lock confirmations use a popup with a scrollable
+  form and separate action buttons. Enabling biometrics prompts Android authentication
+  directly; no repeat app-PIN entry is needed. A configured PIN and an unlocked session
+  remain mandatory, and opt-in is persisted only after successful biometric authentication.
 
 ## Verification
 
-119 JVM tests passed; debug/release lint has no errors. Debug APK, optimized release APK
-and AAB builds passed. Read-only navigation and conditional TLS drafts were checked on a
-Mi 9T Pro using the optimized build. See [VERIFICATION](VERIFICATION.md) for artifact hashes,
+137 JVM tests passed; debug/release lint has no errors (2 toolchain-update warnings in the
+offline run). Debug APK, optimized release APK and AAB builds passed. The GitHub workflow
+passed actionlint. Release ZIP alignment and packaged native ELF alignment were verified
+at 16 KB. Earlier read-only navigation and conditional TLS drafts were checked on a Mi 9T Pro.
+The owner's signed build passed read-only navigation and a lock/backup-resume check.
+The later PIN-popup/direct-biometric changes still need a matching signed update for
+physical-device acceptance.
+See [VERIFICATION](VERIFICATION.md) for artifact hashes,
 the exact test scope, lint warnings and remaining acceptance/signing requirements.
 
 No live panel writes were performed. Protocol write-and-connect acceptance still requires
