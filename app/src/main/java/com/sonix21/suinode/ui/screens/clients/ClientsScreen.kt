@@ -204,7 +204,7 @@ fun ClientsScreen(nav: NavController) {
     }
 
     if (showResetTraffic) {
-        ConfirmDialog(title = "Reset all traffic", confirmText = "Reset traffic", message = "Zero up/down for every client and re-enable all of them? The core will be restarted.", onConfirm = {
+        ConfirmDialog(title = "Reset all traffic", confirmText = "Reset traffic", message = "Zero up/down for every client and re-enable all of them, including manually disabled clients? Lifetime totals are preserved. s-ui 1.6.4 updates inbound users without restarting the core; older panels may restart it.", onConfirm = {
             runner.go {
                 val env = session.client.postEmpty("resetTraffic")
                 if (!env.success) throw Exception(env.msg)

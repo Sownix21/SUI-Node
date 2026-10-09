@@ -51,7 +51,8 @@ fun HttpClientOptions(j: J, session: PanelSession) {
     }
     if (j.int("version") != 1) TransportTuning(j, quic = j.int("version") == 3)
     OutTlsEditor(j.ensureObj("tls"))
-    DialSection(j, session.outboundTags(), clientMode = true, dnsTags = session.dnsServerTags())
+    // Shared and inline HTTP clients use the full server-side dial options in 1.6.4.
+    DialSection(j, session.outboundTags(), dnsTags = session.dnsServerTags())
 }
 
 @Composable

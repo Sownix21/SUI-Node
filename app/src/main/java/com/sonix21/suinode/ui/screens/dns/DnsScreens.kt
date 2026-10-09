@@ -40,7 +40,7 @@ fun DnsScreen(nav: NavController) {
     val session = useSession()
     val data by session.data.collectAsState()
     val runner = rememberRunner()
-    val config = remember(session) { data.config.deepCopy() }
+    var config by remember(session) { mutableStateOf(data.config.deepCopy()) }
     val dns = config.optJSONObject("dns") ?: JSONObject().also {
         it.put("servers", JSONArray()); it.put("rules", JSONArray()); config.put("dns", it)
     }
@@ -56,14 +56,14 @@ fun DnsScreen(nav: NavController) {
     fun remove(arr: JSONArray, index: Int) {
         val next = JSONArray(); for (i in 0 until arr.length()) if (i != index) next.put(arr.opt(i))
         if (arr === servers) dns.put("servers", next) else dns.put("rules", next)
+        config = config.deepCopy()
         JsonEditSignal.bump()
     }
     fun move(arr: JSONArray, from: Int, to: Int) {
         if (to !in 0 until arr.length()) return
-        val list = (0 until arr.length()).map { arr.opt(it) }.toMutableList()
-        val item = list.removeAt(from); list.add(to, item)
-        val next = JSONArray(); list.forEach(next::put)
+        val next = Panel164.moveRule(arr, from, to)
         if (arr === servers) dns.put("servers", next) else dns.put("rules", next)
+        config = config.deepCopy()
         JsonEditSignal.bump()
     }
 
@@ -122,7 +122,7 @@ fun DnsScreen(nav: NavController) {
                     }
                 }
             }
-            AdvancedJsonCard(dns) { config.put("dns", it) }
+            AdvancedJsonCard(dns) { config = config.deepCopy().put("dns", it) }
         }
     }
 }
@@ -214,8 +214,34 @@ fun DnsRuleEditorScreen(nav: NavController, index: Int) {
                 CsvField("IP CIDRs", j.strs("ip_cidr"), { j.setStrs("ip_cidr", it) })
                 CsvField("Query types", j.strs("query_type"), { j.setStrs("query_type", it) })
                 SwitchRow("Private IP", j.bool("ip_is_private"), { j.setBool("ip_is_private", it, true) })
+                SourceIpConditions(j)
             } }
             AdvancedJsonCard(j.o) { obj = it }
         }
+    }
+}
+
+/** Matches the source-IP reveal/select controls in frontend DnsRule.vue. */
+@Composable
+private fun SourceIpConditions(j: J) {
+    val enabled = Panel164.sourceIpKeys.any(j::has)
+    SwitchRow("Source IP conditions", enabled, { on ->
+        Panel164.sourceIpMode(j.o, if (on) "source_ip_cidr" else null)
+        JsonEditSignal.bump()
+    })
+    if (enabled) {
+        val mode = if (j.has("source_ip_cidr")) "source_ip_cidr" else "source_ip_is_private"
+        SelectField("Source IP match", mode,
+            listOf(Opt("Source IP CIDRs", "source_ip_cidr"), Opt("Private source IPs", "source_ip_is_private")),
+            clearable = false, onChange = { key ->
+                if (key != null) { Panel164.sourceIpMode(j.o, key); JsonEditSignal.bump() }
+            })
+        // Preserve and expose both if an existing advanced rule contains both fields.
+        if (j.has("source_ip_cidr")) CsvField("Source IP CIDRs", j.strs("source_ip_cidr"), {
+            j.setStrs("source_ip_cidr", it, emptyRemoves = false)
+        })
+        if (j.has("source_ip_is_private")) SwitchRow("Private source IPs", j.bool("source_ip_is_private"), {
+            j.o.put("source_ip_is_private", it); JsonEditSignal.bump()
+        })
     }
 }

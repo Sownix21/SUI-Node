@@ -160,7 +160,10 @@ class SuiClient(private val panel: Panel) {
             return response
         }
         if (action !in setOf("linkConvert","subConvert","getCertPing")) SaveGuard.requireNoPending(panel)
-        return send()
+        val response = send()
+        if (response.success && action == "resetTraffic")
+            com.sonix21.suinode.core.ClientAlertFreshness.changed(panel.id)
+        return response
     }
 
     /** GetAll omits delayStart/reset/config fields. Fetch bounded full-record batches. */

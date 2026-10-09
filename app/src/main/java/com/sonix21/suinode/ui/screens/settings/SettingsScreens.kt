@@ -101,7 +101,7 @@ fun PanelSettingsScreen(nav: NavController) {
         draftValue = { settings },
         actions = { IconGhostButton(Icons.Filled.RestartAlt, { confirmRestart = true }, contentDesc = "Restart panel") },
         primaryAction = {
-            com.sonix21.suinode.ui.glass.HeaderPrimaryAction("Save settings") { runner.go { val r = session.save("settings", "set", requireNotNull(o).also(SubscriptionConfig::validateSettings)); if (r.isFailure) throw Exception(r.exceptionOrNull()?.message); ToastBus.show("Settings saved; restart panel to apply") } }
+            com.sonix21.suinode.ui.glass.HeaderPrimaryAction("Save settings") { runner.go { val r = session.save("settings", "set", requireNotNull(o).also(SubscriptionConfig::validateSettings)); if (r.isFailure) throw Exception(r.exceptionOrNull()?.message); ToastBus.show("Settings saved. Listener changes may require a panel restart.") } }
         }) {
         if (o == null) return@PageScaffold
         val j = J(o)
@@ -114,6 +114,7 @@ fun PanelSettingsScreen(nav: NavController) {
                 2 -> SubscriptionFields(o, clash = false)
                 else -> SubscriptionFields(o, clash = true)
             } } }
+            if (tab == 0) Text(UiLocale.text("Global reset: leave empty or use off to disable. Example: 0 0 1 * * resets monthly in the panel time zone. s-ui 1.6.4 validates the schedule and applies changes without restarting; the first reset occurs at the next scheduled boundary. Resets re-enable all clients."), color = LocalGlass.current.textFaint)
             AdvancedJsonCard(o) { settings = it }
         }
     }

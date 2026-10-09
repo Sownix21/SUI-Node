@@ -68,16 +68,16 @@ No separate port-stripping feature is needed.
 
 ## Compatibility and limits
 
-Version 2.4.1 targets the supplied **s-ui 1.6.3** backend and frontend, using APIv2 only.
+Version 2.4.2 targets the supplied **s-ui 1.6.4** backend and frontend, using APIv2 only.
 
 | Reference | Scope |
 | --- | --- |
-| Local backend snapshot | 1.6.3, with sing-box 1.14.1 declared in its module; not shipped in this Android repository |
-| Frontend | `f859e16953cd733293618f626cc19b8466e00fd3` / 1.6.3 |
+| Local backend snapshot | 1.6.4, with sing-box 1.14.2 declared in its module; not shipped in this Android repository |
+| Frontend | `e4525297b002c1c3be234cc1c9695ef84be741a0` / 1.6.4 |
 | Earlier panels | Existing APIv2 features remain available; 1.6.3-only actions report an error when unsupported |
 | Later releases | Require a fresh contract/form review; not automatically certified |
 
-See [what changed in 2.4.1](docs/CHANGES-2.4.md), the [1.6.3 compatibility notes](docs/PANEL-1.6.3.md),
+See [what changed in 2.4.2](docs/CHANGES-2.4.2.md), the [1.6.4 compatibility notes](docs/PANEL-1.6.4.md),
 and [APIv2 documentation](https://github.com/alireza0/s-ui/wiki/API-Documentation).
 
 ### Protocol families
@@ -100,10 +100,20 @@ or Tools; optional five-second refresh runs only while the screen is resumed. Di
 a selected client's sessions requires confirmation, respects read-only mode and does not
 disable the client—reconnection is still possible.
 
-The 1.6.3 update also adds Snell user-key editing, mDNS, a default shared HTTP client,
+The current editors include Snell user-key editing, mDNS, a default shared HTTP client,
 TLS cipher-suite and handshake-timeout controls, mutual TLS and record fragmentation.
 Dependent fields appear when enabled. Certificate-provider settings replace the obsolete
 inline ACME creation controls; existing legacy fields are preserved for explicit migration.
+
+Shared and inline HTTP clients expose full dial controls, including detour, interface/IP
+binding, routing marks and DNS resolver selection. DNS source-IP conditions reveal CIDR
+or private-address controls when enabled. DNS and routing rules have move-up/down actions;
+client sorting offers separate **Traffic used** and **Traffic quota** choices.
+
+On s-ui 1.6.4, resetting all client traffic updates inbound users without restarting the
+core. It also re-enables **all** clients, including manually disabled ones, so confirmation
+is required. The global reset cron is validated by the panel and schedule changes take
+effect without a restart; the first reset occurs at the next scheduled boundary.
 
 - Only actions registered by the backend's APIv2 handler are permitted.
 - Full synchronization uses `GET load`, without a phone-clock `lu` cursor.

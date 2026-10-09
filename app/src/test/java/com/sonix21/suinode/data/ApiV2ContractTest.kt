@@ -54,6 +54,57 @@ class ApiV2ContractTest {
 
     @After fun stop() { session.client.logout(); server.stop(0); StatusStore.reset() }
 
+    @Test fun resetAllTrafficInvalidatesOldAlertsWithoutAnExtraCoreRestart() = runBlocking {
+        val before = ClientAlertFreshness.version(session.panel.id)
+        reply = { jo("success" to true).toString() }
+        assertTrue(session.client.postEmpty("resetTraffic").success)
+        assertEquals(before + 1, ClientAlertFreshness.version(session.panel.id))
+        assertEquals(listOf("/app/apiv2/resetTraffic"), requests.map { it.path })
+        assertEquals("POST", requests.single().method)
+        assertEquals("contract-test-token", requests.single().token)
+        reply = { jo("success" to false, "msg" to "reset rejected").toString() }
+        assertFalse(session.client.postEmpty("resetTraffic").success)
+        assertEquals(before + 1, ClientAlertFreshness.version(session.panel.id))
+        val readOnly = SuiClient(session.panel.copy(readOnly = true))
+        try { assertTrue(runCatching { readOnly.postEmpty("resetTraffic") }.isFailure) }
+        finally { readOnly.logout() }
+        assertEquals(2, requests.size)
+    }
+
+    @Test fun panel164ConfigRoundTripKeepsFullHttpDialAndDnsSourceConditions() = runBlocking {
+        session.load().getOrThrow()
+        val config = session.data.value.config.deepCopy()
+        val http = jo("tag" to "download", "detour" to "direct", "bind_interface" to "eth0",
+            "inet4_bind_address" to "192.0.2.1", "inet6_bind_address" to "2001:db8::1",
+            "routing_mark" to 12, "reuse_addr" to true, "bind_address_no_port" to true,
+            "domain_resolver" to "dns-1", "future" to "keep")
+        config.put("http_clients", jarr(listOf(http)))
+        val rule = jo("action" to "route", "server" to "dns-1")
+        Panel164.sourceIpMode(rule, "source_ip_cidr")
+        rule.put("source_ip_cidr", jarr(listOf("10.0.0.0/8", "fd00::/8")))
+        config.getJSONObject("dns").put("rules", jarr(listOf(rule)))
+        reply = { envelope(jo("config" to config)) }
+        session.save("config", "set", config).getOrThrow()
+        val fields = requests.last().body.split('&').associate {
+            val parts = it.split('=', limit = 2)
+            URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8")
+        }
+        val sent = JSONObject(requireNotNull(fields["data"]))
+        assertEquals("config", fields["object"])
+        assertEquals(JsonCanonical.text(config), JsonCanonical.text(sent))
+        assertEquals(JsonCanonical.text(config), JsonCanonical.text(session.data.value.config))
+    }
+
+    @Test fun invalidGlobalResetIsReportedWithoutARestartOrBookkeepingWrite() = runBlocking {
+        reply = { jo("success" to false, "msg" to "invalid cron spec <monthly>").toString() }
+        val result = session.client.postForm("save", mapOf("object" to "settings", "action" to "set",
+            "data" to jo("globalReset" to "monthly", "globalResetLast" to "123").toString()))
+        assertFalse(result.success)
+        assertTrue(result.msg.contains("invalid cron spec"))
+        assertEquals(1, requests.size)
+        assertFalse(URLDecoder.decode(requests.single().body, "UTF-8").contains("globalResetLast"))
+    }
+
     @Test fun sessionsUseApiV2ArrayAndEncodedFilters() = runBlocking {
         reply = { jo("success" to true, "obj" to jarr(listOf(
             jo("id" to "older", "createdAt" to 10, "up" to 1, "down" to 2),

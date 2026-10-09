@@ -5,6 +5,11 @@ import com.sonix21.suinode.APP
 /** Lightweight runtime localization for the Compose-first UI. */
 object UiLocale {
     private val fa = mapOf(
+        "Source IP conditions" to "شرط‌های آی‌پی مبدأ",
+        "Source IP match" to "نوع تطبیق آی‌پی مبدأ",
+        "Source IP CIDRs" to "بازه‌های آی‌پی مبدأ (CIDR)",
+        "Private source IPs" to "آی‌پی‌های خصوصی مبدأ",
+        "Global reset: leave empty or use off to disable. Example: 0 0 1 * * resets monthly in the panel time zone. s-ui 1.6.4 validates the schedule and applies changes without restarting; the first reset occurs at the next scheduled boundary. Resets re-enable all clients." to "بازنشانی سراسری: برای غیرفعال‌کردن، خالی بگذارید یا off بنویسید. نمونهٔ 0 0 1 * * ترافیک را ماهانه، مطابق منطقهٔ زمانی پنل بازنشانی می‌کند. پنل ۱.۶.۴ زمان‌بندی را اعتبارسنجی و بدون راه‌اندازی مجدد اعمال می‌کند؛ نخستین بازنشانی در موعد بعدی انجام می‌شود. بازنشانی همهٔ کاربران را دوباره فعال می‌کند.",
         "Home" to "خانه", "Clients" to "کاربران", "Inbounds" to "ورودی‌ها", "Outbounds" to "خروجی‌ها",
         "Tools" to "ابزارها", "Endpoints" to "نقاط پایانی", "Services" to "سرویس‌ها", "Routing" to "مسیریابی",
         "DNS" to "دی‌ان‌اس", "Core" to "هسته", "Core settings" to "تنظیمات هسته", "Panel settings" to "تنظیمات پنل",

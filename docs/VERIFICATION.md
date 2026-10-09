@@ -1,5 +1,36 @@
 # APIv2 alignment and verification
 
+## Current update — 2.4.2 / October 9, 2026
+
+Targets the supplied **s-ui 1.6.4 / sing-box 1.14.2** and frontend
+`e4525297b002c1c3be234cc1c9695ef84be741a0`. See [the source review](PANEL-1.6.4.md)
+and [release notes](CHANGES-2.4.2.md).
+
+- **145 JVM tests passed** across 21 suites, with zero failures/errors. New tests cover
+  source-IP field types and cleanup, repeated rule ordering, unlimited-client usage sorting,
+  full HTTP dial/DNS config POST+GET fixtures, reset-alert freshness and cron rejection.
+- Debug and release lint report **0 errors and 0 warnings** in this offline run. No lint
+  baseline or new suppression was added. Online dependency advisories can differ.
+- APIv2 registry comparison passed: **19 GET / 10 POST / 27 writable settings**, with
+  **19 inbound / 19 outbound / 13 DNS types** matching the supplied frontend.
+- The repaired GitHub workflow passed local actionlint (without optional ShellCheck or
+  Pyflakes). A hosted GitHub Actions run has not been triggered or verified.
+- Persian README rendering checks passed: all nine main headings and three tables inherit
+  RTL direction, while address examples retain LTR. Local Markdown links resolve.
+- `testDebugUnitTest lintDebug lintRelease assembleRelease bundleRelease` completed
+  successfully offline. R8/resource shrinking produced an unsigned release APK and AAB;
+  APK metadata confirms **2.4.2 (8)** and `com.sonix21.suinode`. 16 KB ZIP alignment passed.
+- `git diff --check` passed. No APK/AAB, signing key or local SDK-properties file is
+  tracked. A source-only export excludes build output, local captures and signing material.
+
+| 2.4.2 artifact | SHA-256 |
+| --- | --- |
+| Unsigned release APK | `b9fe0fcc587b8ca0efd8105fc5d7488d9e506c0f91689022c4a00a391b248eb1` |
+| Unsigned release AAB | `0497309a22ded1247de40aa906f9fbc8a0ba9bedf4013c7b6aee1b640c01fa14` |
+
+Earlier device tests and artifact hashes below describe older builds, not this update.
+No device or live panel operation was performed. Signing and publishing are left to the owner.
+
 ## Post-device-test PIN/biometric follow-up — October 2, 2026
 
 Source changes after the signed-device checks below move PIN setup, change, removal and
