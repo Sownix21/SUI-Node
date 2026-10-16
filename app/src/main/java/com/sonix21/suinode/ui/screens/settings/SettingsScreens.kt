@@ -115,6 +115,15 @@ fun PanelSettingsScreen(nav: NavController) {
                 else -> SubscriptionFields(o, clash = true)
             } } }
             if (tab == 0) Text(UiLocale.text("Global reset: leave empty or use off to disable. Example: 0 0 1 * * resets monthly in the panel time zone. s-ui 1.6.4 validates the schedule and applies changes without restarting; the first reset occurs at the next scheduled boundary. Resets re-enable all clients."), color = LocalGlass.current.textFaint)
+            if (tab == 1 && j.has("subCustomHeaders")) GlassCard(contentPadding = 14.dp) {
+                Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                    GlassTextField("Custom subscription response headers", j.str("subCustomHeaders"),
+                        { j.setStr("subCustomHeaders", it, false) }, singleLine = false, minLines = 3,
+                        hint = "announce: Hello!\nannounce-url: https://example.com/")
+                    Text(UiLocale.text("One Header: value per line. Blank lines and # or // comments are ignored. These headers are public subscription responses, not API credentials. Save, then restart the panel to apply changes. Gzip is automatic."),
+                        color = LocalGlass.current.textFaint)
+                }
+            }
             AdvancedJsonCard(o) { settings = it }
         }
     }

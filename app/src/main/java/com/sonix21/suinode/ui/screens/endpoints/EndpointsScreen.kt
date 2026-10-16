@@ -80,15 +80,21 @@ fun EndpointsScreen(nav: NavController) {
     val scope = rememberCoroutineScope()
     var checks by remember(session) { mutableStateOf(mapOf<String, LatencyResult>()) }
     var testing by remember { mutableStateOf(false) }
+    val target by session.latencyTarget.collectAsState()
+    LaunchedEffect(target) { checks = emptyMap() }
     fun test(tags: List<String>) {
-        if (testing || runner.busy) return
+        if (testing || runner.busy || session.panel.readOnly) return
+        val link = try { target.link() } catch (e: IllegalArgumentException) {
+            ToastBus.show(e.message ?: "Enter a valid HTTP or HTTPS test URL.")
+            return
+        }
         testing = true
         scope.launch {
             try {
                 for (tag in tags.distinct()) {
                     checks = checks + (tag to LatencyResult(loading = true))
                     val result = try {
-                        val response = session.client.get("checkOutbound", mapOf("tag" to tag))
+                        val response = session.client.checkOutbound(tag, link)
                         if (response.success) LatencyResult.parse(response.objObj())
                         else LatencyResult(error = response.msg.ifBlank { "Test failed" })
                     } catch (e: CancellationException) { throw e }
@@ -109,6 +115,9 @@ fun EndpointsScreen(nav: NavController) {
             com.sonix21.suinode.ui.glass.HeaderPrimaryAction("New endpoint", type = com.sonix21.suinode.ui.glass.HeaderActionType.New) { nav.push(Route.EndpointEditor(0)) }
         },
     ) {
+        com.sonix21.suinode.ui.screens.shared.LatencyTargetControl(target, !testing && !runner.busy) {
+            session.latencyTarget.value = it
+        }
         Row(Modifier.fillMaxWidth().padding(bottom = 10.dp), horizontalArrangement = Arrangement.End) {
             GhostButton(if (testing) "Testing…" else "Test all", enabled = !session.panel.readOnly && !testing && !runner.busy && data.endpoints.isNotEmpty()) {
                 test(data.endpoints.map { it.optString("tag") }.filter { it.isNotBlank() })

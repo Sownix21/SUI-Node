@@ -55,20 +55,18 @@ fun OutboundsScreen(nav: NavController) {
     val data by session.data.collectAsState()
     val runner = rememberRunner()
     var deleteTag by remember { mutableStateOf<String?>(null) }
-    var checks by remember { mutableStateOf(mapOf<String, CheckState>()) }
+    var checks by remember(session) { mutableStateOf(mapOf<String, CheckState>()) }
     var testingAll by remember { mutableStateOf(false) }
+    val target by session.latencyTarget.collectAsState()
+    LaunchedEffect(target) { checks = emptyMap() }
 
     val onlines = data.onlines.outbound.toSet()
 
-    suspend fun check(tag: String): CheckState = try {
-        val env = session.client.get("checkOutbound", mapOf("tag" to tag))
+    suspend fun check(tag: String, link: String?): CheckState = try {
+        val env = session.client.checkOutbound(tag, link)
         if (!env.success) CheckState(2, error = env.msg) else {
-            val o = env.objObj() ?: throw java.io.IOException("The panel returned an invalid test result.")
-            CheckState(
-                state = if (o.optBoolean("OK")) 1 else 2,
-                delay = o.optLongOrX("Delay").takeIf { o.optBoolean("OK") },
-                error = o.optStringOrNull("Error"),
-            )
+            val result = LatencyResult.parse(env.objObj())
+            CheckState(if (result.error == null) 1 else 2, result.delayMs, result.error)
         }
     } catch (e: kotlinx.coroutines.CancellationException) {
         throw e
@@ -88,16 +86,21 @@ fun OutboundsScreen(nav: NavController) {
             com.sonix21.suinode.ui.glass.HeaderPrimaryAction("+ New outbound", type = com.sonix21.suinode.ui.glass.HeaderActionType.New) { nav.push(Route.OutboundEditor(-1)) }
         },
     ) {
+        com.sonix21.suinode.ui.screens.shared.LatencyTargetControl(target, !runner.busy && !testingAll) {
+            session.latencyTarget.value = it
+        }
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 com.sonix21.suinode.ui.glass.GhostButton("Import") { nav.push(Route.OutboundImport) }
                 if (data.outbounds.isNotEmpty())
-                    com.sonix21.suinode.ui.glass.GhostButton("Test all", tint = g.teal) {
+                    com.sonix21.suinode.ui.glass.GhostButton("Test all", tint = g.teal,
+                        enabled = !session.panel.readOnly && !runner.busy && !testingAll) {
                         val tags = data.outbounds.map { it.optString("tag") }
                         runner.go {
+                            val link = target.link()
                             testingAll = true
                             checks = emptyMap()
                             try {
-                                for (tag in tags) checks = checks + (tag to check(tag))
+                                for (tag in tags) checks = checks + (tag to check(tag, link))
                             } finally {
                                 testingAll = false
                             }
@@ -139,9 +142,11 @@ fun OutboundsScreen(nav: NavController) {
                     IconGhostButton(Icons.AutoMirrored.Filled.ShowChart, {
                         nav.push(Route.TrafficChart("outbound", tag, tag))
                     }, tint = g.teal, contentDesc = "Traffic")
-                    IconGhostButton(Icons.Filled.Speed, {
-                        runner.go { checks = checks + (tag to check(tag)) }
-                    }, contentDesc = "Test outbound")
+                    IconButton(onClick = {
+                        runner.go { checks = checks + (tag to check(tag, target.link())) }
+                    }, enabled = !session.panel.readOnly && !runner.busy && !testingAll) {
+                        Icon(Icons.Filled.Speed, contentDescription = "Test outbound", tint = g.teal)
+                    }
                     IconGhostButton(Icons.Rounded.Edit, { nav.push(Route.OutboundEditor(ob.optLongOrX("id").toInt())) }, contentDesc = "Edit outbound")
                     IconGhostButton(Icons.Rounded.DeleteOutline, { deleteTag = tag }, tint = g.err, contentDesc = "Delete outbound")
                 }

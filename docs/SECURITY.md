@@ -26,8 +26,7 @@ until the phone is unlocked.
 The optional screenshot/Recents protection setting (enabled by default) uses FLAG_SECURE
 and, on Android 13+, the Recents screenshot policy. Turning it off deliberately permits
 ordinary captures. It is not protection against root, compromised firmware or an instrumented
-debuggable process. This debug APK is for testing, not a production-security certification.
-Release distribution requires the owner's signing key and a non-debuggable release build.
+process. Release distribution requires the owner's signing key and an optimized release build.
 
 ## PIN-first app lock and local summaries
 
@@ -38,7 +37,7 @@ PBKDF2-HMAC-SHA256 with 600,000 iterations produce a 256-bit verifier; compariso
 constant-time. The verifier and persistent failure counter live in a separate encrypted
 Keystore vault, not plaintext preferences. Cryptographic work runs off the UI thread.
 After five failed attempts, increasing delays start at 30 seconds and cap at 30 minutes.
-The delay uses the device wall clock; clock manipulation, root or a modified debug process
+The delay uses the device wall clock; clock manipulation, root or a modified process
 is outside this protection. Setting a PIN enables app lock. Changing/removing an existing
 PIN and changing the lock switch require the PIN. Enabling biometrics additionally requires
 an Android BIOMETRIC_STRONG authentication. The PIN remains available if biometrics fail.

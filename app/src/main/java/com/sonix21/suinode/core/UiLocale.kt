@@ -5,6 +5,12 @@ import com.sonix21.suinode.APP
 /** Lightweight runtime localization for the Compose-first UI. */
 object UiLocale {
     private val fa = mapOf(
+        "Custom test URL" to "نشانی دلخواه برای آزمون تأخیر",
+        "Test URL" to "نشانی آزمون",
+        "Enter a valid HTTP or HTTPS test URL." to "یک نشانی معتبر HTTP یا HTTPS برای آزمون وارد کنید.",
+        "The panel runs this probe. Leave blank for the core default. Shared between Outbounds and Endpoints for this session only." to "آزمون را پنل اجرا می‌کند. برای استفاده از نشانی پیش‌فرض هسته، خالی بگذارید. این تنظیم فقط در نشست فعلی، میان خروجی‌ها و نقاط پایانی مشترک است.",
+        "Custom subscription response headers" to "سرآیندهای دلخواه پاسخ اشتراک",
+        "One Header: value per line. Blank lines and # or // comments are ignored. These headers are public subscription responses, not API credentials. Save, then restart the panel to apply changes. Gzip is automatic." to "در هر خط، نام سرآیند و مقدار آن را با دونقطه جدا کنید. خط‌های خالی و توضیحات با # یا // نادیده گرفته می‌شوند. این سرآیندها در پاسخ عمومی اشتراک قرار می‌گیرند؛ اطلاعات محرمانهٔ API را وارد نکنید. پس از ذخیره، برای اعمال تغییرات پنل را دوباره راه‌اندازی کنید. فشرده‌سازی Gzip خودکار است.",
         "Source IP conditions" to "شرط‌های آی‌پی مبدأ",
         "Source IP match" to "نوع تطبیق آی‌پی مبدأ",
         "Source IP CIDRs" to "بازه‌های آی‌پی مبدأ (CIDR)",

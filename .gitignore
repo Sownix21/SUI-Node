@@ -4,6 +4,7 @@
 .idea/
 *.iml
 **/build/
+app/release/
 .externalNativeBuild/
 .cxx/
 captures/

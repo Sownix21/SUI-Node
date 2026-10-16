@@ -11,7 +11,7 @@ object Panel161 {
         "webListen", "webDomain", "webPort", "webCertFile", "webKeyFile", "webPath", "webURI",
         "sessionMaxAge", "trafficAge", "statsBucketSeconds", "timeLocation",
         "subListen", "subPort", "subPath", "subDomain", "subCertFile", "subKeyFile", "subUpdates",
-        "subEncode", "subShowInfo", "subURI", "subJsonExt", "subClashExt",
+        "subEncode", "subShowInfo", "subURI", "subJsonExt", "subClashExt", "subCustomHeaders",
         "subClashNoDefGrp", "subClashSprtAll", "subClashUdp", "globalReset",
     )
     fun settingsPayload(value: JSONObject): JSONObject = JSONObject().apply {

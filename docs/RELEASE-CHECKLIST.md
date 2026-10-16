@@ -6,7 +6,7 @@ source is recorded in [VERIFICATION](VERIFICATION.md).
 
 ## Before signing
 
-- Run `testDebugUnitTest lintDebug lintRelease assembleDebug assembleRelease bundleRelease`.
+- Run the regression suite and lint, then `assembleRelease bundleRelease`.
 - Review lint warnings; do not suppress errors just to obtain an artifact.
 - Compare the exact supported backend/frontend revision and run the optional source-registry
   checker after every panel update. Review changed request/response schemas and forms too.
@@ -40,11 +40,11 @@ permission. A skipped item must remain visible in release notes, not be reported
 
 ## Sign and publish
 
-- Use the owner's production signing identity; do not ship a debug-key-signed QA artifact.
+- Use the owner's production signing identity; do not ship a test-signed artifact.
 - Increment versionCode for a subsequent published update and choose a versionName.
 - Build the signed release and run Android `apksigner verify --verbose` on the APK.
 - Install/test that identity on a separate test profile/device; do not erase the owner's
-  existing debug installation just to resolve a signature mismatch.
+  existing installation just to resolve a signature mismatch.
 - Record artifact SHA-256, source revision, supported panel/core versions and limitations.
 - Run hosted CI after uploading the app directory as the repository root. Local testing
   does not establish that a hosted workflow passed.

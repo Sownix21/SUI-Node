@@ -36,6 +36,7 @@ data class PanelData(
 class PanelSession(val panel: Panel) {
 
     val client = SuiClient(panel)
+    val latencyTarget = MutableStateFlow(LatencyTarget())
 
     private val _data = MutableStateFlow(PanelData())
     val data: StateFlow<PanelData> = _data

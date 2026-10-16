@@ -68,16 +68,16 @@ No separate port-stripping feature is needed.
 
 ## Compatibility and limits
 
-Version 2.4.2 targets the supplied **s-ui 1.6.4** backend and frontend, using APIv2 only.
+Version 2.4.3 targets the supplied **s-ui 1.6.5** backend and frontend, using APIv2 only.
 
 | Reference | Scope |
 | --- | --- |
-| Local backend snapshot | 1.6.4, with sing-box 1.14.2 declared in its module; not shipped in this Android repository |
-| Frontend | `e4525297b002c1c3be234cc1c9695ef84be741a0` / 1.6.4 |
+| Local backend snapshot | 1.6.5, with sing-box 1.14.3 declared in its module; not shipped in this Android repository |
+| Frontend | `abd7f342f6f6dcb626bcf70a25b092f4727a4f2d` / 1.6.5 |
 | Earlier panels | Existing APIv2 features remain available; 1.6.3-only actions report an error when unsupported |
 | Later releases | Require a fresh contract/form review; not automatically certified |
 
-See [what changed in 2.4.2](docs/CHANGES-2.4.2.md), the [1.6.4 compatibility notes](docs/PANEL-1.6.4.md),
+See [what changed in 2.4.3](docs/CHANGES-2.4.3.md), the [1.6.5 compatibility notes](docs/PANEL-1.6.5.md),
 and [APIv2 documentation](https://github.com/alireza0/s-ui/wiki/API-Documentation).
 
 ### Protocol families
@@ -93,6 +93,22 @@ services and OOM killer. Some choices depend on the core build and host OS.
 WireGuard peer export is not a promise of QR export for every endpoint type.
 
 ### Wire behavior
+
+**Custom subscription response headers** appear under Panel settings → Subscription
+when the panel exposes this setting (1.6.5+). Enter one `Header: value` per line, for example
+`announce-url: https://example.com/`. Empty lines and `#`/`//` comments are ignored;
+the panel also skips malformed lines. Clear the field and save to remove custom headers.
+These are publicly served subscription metadata, **not** authentication headers—never
+put API tokens or passwords here. Save, then explicitly restart the panel to apply changes.
+Built-in subscription metadata may override a custom header with the same name.
+Subscription gzip compression is automatic on the new panel; it has no app switch.
+
+**Custom test URL** on Outbounds and Endpoints reveals an HTTP/HTTPS input when enabled.
+Blank or disabled uses the core's default target; malformed nonempty URLs block the test.
+The panel, not the phone, probes the target via APIv2. One target is used throughout a
+Test all batch. The choice is shared between these two screens for the current panel
+session only, is not saved to disk, and changing it clears previous displayed results.
+Read-only profiles block probes. No test runs just because a URL was entered.
 
 **Live sessions** shows connections by client, inbound, outbound or endpoint, including
 addresses, matched rule, start time and transferred bytes. Open it from the list shortcuts
@@ -122,7 +138,7 @@ effect without a restart; the first reset occurs at the next scheduled boundary.
 - Responses use `{ success, msg, obj }`. HTTP 200 alone does not mean success.
 - Ordinary edits retain unrelated/unknown protocol fields. Changing a protocol or disabling
   an option can intentionally remove the fields belonging to that choice.
-- Panel settings use a reviewed allowlist of 27 writable keys. Internal flags and protected
+- Panel settings use a reviewed allowlist of 28 writable keys. Internal flags and protected
   settings are never echoed back through the general settings save.
 - JSON/YAML subscription extensions retain their string representation.
 - Failed refreshes keep the last good snapshot and display the failure.
@@ -230,7 +246,7 @@ Screenshot/Recents protection is optional and updates immediately.
 
 A changed server certificate requires fingerprint review. A legitimate renewal can trigger
 this; verify the new fingerprint independently before trusting it. Root, compromised
-firmware or a debuggable process is outside the vault's protection guarantees.
+firmware or an instrumented process is outside the vault's protection guarantees.
 
 **Do not uninstall or clear app data to fix vault errors:** doing so can destroy encryption
 keys and saved profiles. Do not share real database backups or device dumps in issues.

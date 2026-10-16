@@ -389,11 +389,11 @@ fun DurationField(
 }
 
 @Composable
-fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier, subtitle: String? = null) {
+fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier, subtitle: String? = null, enabled: Boolean = true) {
     val g = LocalGlass.current
     Row(
         modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp))
-            .toggleable(value = checked, role = Role.Switch, onValueChange = { onChange(it); JsonEditSignal.bump() })
+            .toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = { onChange(it); JsonEditSignal.bump() })
             .padding(horizontal = 4.dp, vertical = 4.dp).heightIn(min = 52.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -401,7 +401,7 @@ fun SwitchRow(label: String, checked: Boolean, onChange: (Boolean) -> Unit, modi
             Text(UiLocale.text(label), color = g.text, fontSize = 14.sp, fontWeight = FontWeight.Medium)
             if (subtitle != null) Text(UiLocale.text(subtitle), color = g.textFaint, fontSize = 11.sp, lineHeight = 16.sp)
         }
-        Switch(checked = checked, onCheckedChange = null,
+        Switch(checked = checked, onCheckedChange = null, enabled = enabled,
             colors = SwitchDefaults.colors(
                 checkedTrackColor = g.teal, checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
                 uncheckedTrackColor = g.innerFill, uncheckedThumbColor = g.textFaint, uncheckedBorderColor = g.strokeHi,

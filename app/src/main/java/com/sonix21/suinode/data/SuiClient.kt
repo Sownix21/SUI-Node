@@ -126,6 +126,12 @@ class SuiClient(private val panel: Panel) {
         }
     }
 
+    suspend fun checkOutbound(tag: String, link: String? = null): Envelope {
+        require(tag.isNotBlank()) { "An outbound or endpoint tag is required." }
+        val target = com.sonix21.suinode.core.LatencyTarget(enabled = true, url = link.orEmpty()).link()
+        return get("checkOutbound", mapOf("tag" to tag, "link" to target))
+    }
+
     suspend fun get(action: String, params: Map<String, String?> = emptyMap()): Envelope {
         check(!panel.readOnly || action != "checkOutbound") { "Read-only safety mode blocks active latency probes for this panel" }
         require(action in GET_ACTIONS) { "Unsupported APIv2 GET: $action" }

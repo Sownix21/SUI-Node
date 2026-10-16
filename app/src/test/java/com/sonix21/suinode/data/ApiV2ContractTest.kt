@@ -54,6 +54,88 @@ class ApiV2ContractTest {
 
     @After fun stop() { session.client.logout(); server.stop(0); StatusStore.reset() }
 
+    @Test fun subscriptionHeadersRoundTripAsOneStringAndCanBeCleared() = runBlocking {
+        val headers = "# public response\r\nannounce: سلام\r\nannounce-url: https://example.test:8443/?a=1&b=2\n// comment\nX-Test: a:b"
+        reply = { envelope(jo("subCustomHeaders" to headers, "subClashUdp" to "true")) }
+        val settings = requireNotNull(session.client.get("settings").objObj())
+        assertEquals(headers, settings.getString("subCustomHeaders"))
+        for (value in listOf(headers, "")) {
+            settings.put("subCustomHeaders", value)
+            session.client.postForm("save", mapOf("object" to "settings", "action" to "set", "data" to settings.toString()))
+            val fields = requests.last().body.split('&').associate {
+                val parts = it.split('=', limit = 2)
+                URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8")
+            }
+            val sent = JSONObject(requireNotNull(fields["data"]))
+            assertEquals(value, sent.getString("subCustomHeaders"))
+            assertEquals("true", sent.getString("subClashUdp"))
+        }
+        assertEquals(listOf("/app/apiv2/settings", "/app/apiv2/save", "/app/apiv2/save"), requests.map { it.path })
+    }
+
+    @Test fun olderPanelSettingsDoNotInventCustomHeadersOrGzipOptions() = runBlocking {
+        reply = { envelope(jo("subEncode" to "false")) }
+        val settings = requireNotNull(session.client.get("settings").objObj())
+        assertFalse(settings.has("subCustomHeaders"))
+        assertEquals(setOf("subEncode"), Panel161.settingsPayload(settings).keys().asSequence().toSet())
+        assertFalse(Panel161.writableSettings.any { it.contains("gzip", ignoreCase = true) })
+    }
+
+    @Test fun customLatencyTargetUsesEncodedApiV2LinkAndHonorsReadOnly() = runBlocking {
+        reply = { envelope(jo("OK" to true, "Delay" to 42)) }
+        val link = "https://probe.example:8443/check?a=1&token=a%2Bb=2"
+        assertEquals(42L, LatencyResult.parse(session.client.checkOutbound("wg & edge", link).objObj()).delayMs)
+        val query = requests.single().query!!.split('&').associate {
+            val parts = it.split('=', limit = 2)
+            URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8")
+        }
+        assertEquals(mapOf("tag" to "wg & edge", "link" to link), query)
+        assertEquals("/app/apiv2/checkOutbound", requests.single().path)
+        assertEquals("GET", requests.single().method)
+        session.client.checkOutbound("direct", " ")
+        assertEquals("tag=direct", requests.last().query)
+        assertTrue(runCatching { session.client.checkOutbound("direct", "file:///private") }.isFailure)
+        val readOnly = SuiClient(session.panel.copy(readOnly = true))
+        try { assertTrue(runCatching { readOnly.checkOutbound("direct", link) }.isFailure) }
+        finally { readOnly.logout() }
+        assertEquals(2, requests.size)
+    }
+
+    @Test fun latencyFailureAndInvalidDelayDoNotAppearAsZeroMilliseconds() = runBlocking {
+        reply = { envelope(jo("OK" to false, "Delay" to 0, "Error" to "outbound not found")) }
+        assertEquals("outbound not found", LatencyResult.parse(session.client.checkOutbound("missing").objObj()).error)
+        reply = { envelope(jo("OK" to true)) }
+        val invalid = LatencyResult.parse(session.client.checkOutbound("direct").objObj())
+        assertNull(invalid.delayMs)
+        assertNotNull(invalid.error)
+    }
+
+    @Test fun periodicResetSnapshotReplacesDisabledClientAndOldTraffic() = runBlocking {
+        val before = snapshot().apply { getJSONArray("clients").getJSONObject(0).put("enable", false) }
+        reply = { envelope(before) }
+        session.load().getOrThrow()
+        assertFalse(session.data.value.clients.single().getBoolean("enable"))
+        val after = snapshot().apply { getJSONArray("clients").getJSONObject(0).put("up", 0).put("down", 0) }
+        reply = { envelope(after) }
+        session.load().getOrThrow()
+        val client = session.data.value.clients.single()
+        assertTrue(client.getBoolean("enable"))
+        assertEquals(0L, client.getLong("up"))
+        assertEquals(0L, client.getLong("down"))
+        assertTrue(requests.all { it.method == "GET" && it.path == "/app/apiv2/load" })
+    }
+
+    @Test fun externalLinksReachPanelConverterWithoutLocalBase64Rewriting() = runBlocking {
+        reply = { envelope(jo("type" to "shadowsocks", "tag" to "fixture")) }
+        // Opaque examples exercise transport, not the panel's decoder implementation.
+        for (link in listOf("ss://YWVzLTEyOC1nY206cGFzcw@edge.example:443#legacy",
+            "ss://abc_def-123+/==@edge.example:443/?plugin=a%3Bb&x=y#test")) {
+            session.client.postForm("linkConvert", mapOf("link" to link))
+            assertEquals("link=$link", URLDecoder.decode(requests.last().body, "UTF-8"))
+            assertEquals("/app/apiv2/linkConvert", requests.last().path)
+        }
+    }
+
     @Test fun resetAllTrafficInvalidatesOldAlertsWithoutAnExtraCoreRestart() = runBlocking {
         val before = ClientAlertFreshness.version(session.panel.id)
         reply = { jo("success" to true).toString() }
