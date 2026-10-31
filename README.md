@@ -68,16 +68,16 @@ No separate port-stripping feature is needed.
 
 ## Compatibility and limits
 
-Version 2.4.3 targets the supplied **s-ui 1.6.5** backend and frontend, using APIv2 only.
+Version 2.5.0 targets the supplied **s-ui 1.6.7** backend and frontend, using APIv2 only.
 
 | Reference | Scope |
 | --- | --- |
-| Local backend snapshot | 1.6.5, with sing-box 1.14.3 declared in its module; not shipped in this Android repository |
-| Frontend | `abd7f342f6f6dcb626bcf70a25b092f4727a4f2d` / 1.6.5 |
+| Local backend snapshot | 1.6.7, with sing-box 1.14.4 declared in its module; not shipped in this Android repository |
+| Frontend | `f473aeba368de6581cad70412c098ed98370cbcc` / 1.6.7 |
 | Earlier panels | Existing APIv2 features remain available; 1.6.3-only actions report an error when unsupported |
 | Later releases | Require a fresh contract/form review; not automatically certified |
 
-See [what changed in 2.4.3](docs/CHANGES-2.4.3.md), the [1.6.5 compatibility notes](docs/PANEL-1.6.5.md),
+See [what changed in 2.5.0](docs/CHANGES-2.5.0.md), the [1.6.7 compatibility notes](docs/PANEL-1.6.7.md),
 and [APIv2 documentation](https://github.com/alireza0/s-ui/wiki/API-Documentation).
 
 ### Protocol families
@@ -93,6 +93,29 @@ services and OOM killer. Some choices depend on the core build and host OS.
 WireGuard peer export is not a promise of QR export for every endpoint type.
 
 ### Wire behavior
+
+**Hysteria2 realm** provides conditional NAT-traversal settings on inbounds/outbounds:
+realm server URL, ID/token, STUN servers, IP version and optional port mapping.
+IPv6-only disables port mapping. Enabling realm on an outbound clears its direct server
+address and port hopping. The inbound client-side tab supports a separate realm token;
+the panel generates realm-aware sing-box JSON subscriptions. Clash subscriptions omit
+realm nodes because that format cannot represent them. **Hysteria Realm** services include
+listener/TLS settings and users with tokens and optional realm limits.
+
+**Subscription node names** can optionally omit the client remark prefix on panels
+exposing `subRemarkPrefix`. Changes remain drafts until saved.
+
+**OpenConnect** supports APIv2 client-certificate generation and a local password generator.
+A generated certificate must be trusted by your VPN server; generating it does not
+provision a VPN account. OpenVPN offers mode-specific cipher/digest selectors and
+conditional optional fields. Existing unlisted values are retained until explicitly edited.
+
+**Core debug options** expose pprof listen address, memory limit and GC percent only when
+enabled. Keep pprof on loopback: exposing it publicly may leak sensitive runtime data.
+These are server configuration options, not an Android debugging mode.
+
+The panel's release-check/update operations are **not available through APIv2** in 1.6.7.
+Use its web interface for panel upgrades; the app does not bypass this with legacy API calls.
 
 **Custom subscription response headers** appear under Panel settings → Subscription
 when the panel exposes this setting (1.6.5+). Enter one `Header: value` per line, for example
@@ -138,7 +161,7 @@ effect without a restart; the first reset occurs at the next scheduled boundary.
 - Responses use `{ success, msg, obj }`. HTTP 200 alone does not mean success.
 - Ordinary edits retain unrelated/unknown protocol fields. Changing a protocol or disabling
   an option can intentionally remove the fields belonging to that choice.
-- Panel settings use a reviewed allowlist of 28 writable keys. Internal flags and protected
+- Panel settings use a reviewed allowlist of 29 writable keys. Internal flags and protected
   settings are never echoed back through the general settings save.
 - JSON/YAML subscription extensions retain their string representation.
 - Failed refreshes keep the last good snapshot and display the failure.

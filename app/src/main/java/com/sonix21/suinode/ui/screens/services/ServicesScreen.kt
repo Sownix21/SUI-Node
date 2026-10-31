@@ -193,6 +193,7 @@ fun ServiceEditorScreen(nav: NavController, id: Long) {
                 "ocm", "ccm" -> MultiplexerFields(j, session)
                 "api" -> CoreApiFields(j, session)
                 "oom-killer" -> OomKillerFields(j)
+                "hysteria-realm" -> RealmServiceFields(j)
             }
 
             if (type in ServiceConfig.tlsTypes) GlassCard(contentPadding = 16.dp) {

@@ -175,7 +175,7 @@ fun OutboundEditorScreen(nav: NavController, id: Int) {
                 }
             }
 
-            if (type !in NO_SERVER) {
+            if (type !in NO_SERVER && !(type == "hysteria2" && j.has("realm"))) {
                 GlassCard(contentPadding = 14.dp) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -427,11 +427,17 @@ private fun OutProtocolFields(j: J, type: String) {
                 if (v.isBlank()) ob.o.remove("password") else ob.o.put("password", v)
             })
         }
-        com.sonix21.suinode.ui.screens.shared.CsvField("Port hopping ranges", j.arr("server_ports")?.strListX() ?: emptyList(), { parts ->
-            if (parts.isEmpty()) j.o.remove("server_ports") else j.o.put("server_ports", jarr(parts))
-        }, hint = "2080:3000")
-        DurationField("Hop interval", j.optStringOrNull("hop_interval"), 's', fallbackSeconds = 10,
-            onChange = { j.setOrRemove("hop_interval", it) })
+        com.sonix21.suinode.ui.screens.shared.RealmFields(j, outbound = true)
+        if (!j.has("realm")) {
+            SwitchRow("Port hopping", j.has("server_ports"), {
+                if (it) j["server_ports"] = jarr(emptyList<String>())
+                else { j.remove("server_ports"); j.remove("hop_interval") }
+            })
+            if (j.has("server_ports")) {
+                com.sonix21.suinode.ui.screens.shared.CsvField("Port hopping ranges", j.strs("server_ports"), { j.setStrs("server_ports", it, false) }, hint = "2080:3000")
+                DurationField("Hop interval", j.optStringOrNull("hop_interval"), 's', fallbackSeconds = 10, onChange = { j.setOrRemove("hop_interval", it) })
+            }
+        }
         SwitchRow("Brutal debug", j.bool("brutal_debug"), { j.setBool("brutal_debug", it, onlyTrue = true) })
         NetworkField(j)
     }

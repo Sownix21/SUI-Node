@@ -88,6 +88,16 @@ internal fun VpnTlsFields(endpoint: J) {
                     MaterialField(t, "client_certificate", "Client certificate", textMode)
                     MaterialField(t, "client_key", "Client private key", textMode)
                     if (connect) GlassTextField("Client key password", t.str("client_key_password"), { t.setStr("client_key_password", it) }, obscure = true)
+                    if (connect) {
+                        Text(UiLocale.text("A generated certificate must be trusted by your VPN server before it can authenticate."), color = LocalGlass.current.textFaint)
+                        GhostButton("Generate client certificate", enabled = !runner.busy) { runner.go {
+                            val e = api?.get("keypairs", mapOf("k" to "tls-client", "o" to endpoint.str("username").ifBlank { endpoint.str("tag") })) ?: return@go
+                            check(e.success) { e.msg }
+                            Panel167.clientCertificate(t.o, e.objStrList())
+                            textMode = true
+                            JsonEditSignal.bump()
+                        } }
+                    }
                 }
             }
             if (!connect) TlsOption(t, "Control channel protection", listOf("control_wrap"), "control_wrap" to jo("type" to "tls_crypt")) {

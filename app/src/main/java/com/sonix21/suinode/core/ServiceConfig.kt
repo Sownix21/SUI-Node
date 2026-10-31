@@ -5,8 +5,8 @@ import org.json.JSONObject
 
 object ServiceConfig {
     val types = linkedMapOf("derp" to "DERP relay", "resolved" to "Resolved DNS", "ssm-api" to "Shadowsocks API",
-        "ocm" to "Codex multiplexer", "ccm" to "Claude multiplexer", "api" to "Core API", "oom-killer" to "OOM killer")
-    val tlsTypes = setOf("derp", "ssm-api", "ocm", "ccm", "api")
+        "ocm" to "Codex multiplexer", "ccm" to "Claude multiplexer", "api" to "Core API", "oom-killer" to "OOM killer", "hysteria-realm" to "Hysteria Realm")
+    val tlsTypes = setOf("derp", "ssm-api", "ocm", "ccm", "api", "hysteria-realm")
     fun create(type: String): JSONObject = when (type) {
         "derp" -> jo("config_path" to "", "tls_id" to 0)
         "resolved" -> jo("listen" to "::", "listen_port" to 53)
@@ -14,6 +14,7 @@ object ServiceConfig {
         "ocm", "ccm" -> jo("listen" to "::", "listen_port" to 8080, "tls_id" to 0, "users" to JSONArray())
         "api" -> jo("listen" to "127.0.0.1", "listen_port" to 9090, "tls_id" to 0)
         "oom-killer" -> JSONObject()
+        "hysteria-realm" -> jo("listen" to "::", "listen_port" to 8443, "tls_id" to 0, "users" to JSONArray())
         else -> throw IllegalArgumentException("Unsupported service type: $type")
     }.put("type", type)
 

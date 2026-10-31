@@ -2,10 +2,14 @@ package com.sonix21.suinode.data
 
 import com.sonix21.suinode.core.*
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.json.JSONObject
 
 /** Holds polled server status + computed network speeds + rolling chart history. */
 object StatusStore {
+    private val pollMutex = Mutex()
+    @Volatile private var generation = 0L
     val status = MutableStateFlow<JSONObject?>(null)
     val downSpeed = MutableStateFlow(0L)
     val upSpeed = MutableStateFlow(0L)
@@ -25,6 +29,7 @@ object StatusStore {
     val error = MutableStateFlow<String?>(null)
 
     fun reset() {
+        generation++
         status.value = null
         error.value = null
         lastRead = -1; lastWrite = -1; lastDiskTs = 0
@@ -45,10 +50,14 @@ object StatusStore {
 
     /** Poll once; returns false on failure. */
     suspend fun poll(session: PanelSession): Boolean {
-        return try {
+        val requestedGeneration = generation
+        return pollMutex.withLock {
+        if (generation != requestedGeneration) return@withLock false
+        try {
             val resources = StringBuilder("cpu,mem,dsk,swp,net,dio,sbd,db")
             if (!gotSys) resources.append(",sys")
             val env = session.client.get("status", mapOf("r" to resources.toString()))
+            if (generation != requestedGeneration) return@withLock false
             if (!env.success) { error.value = env.msg; return false }
             val obj = env.objObj() ?: run { error.value = "The panel returned an invalid status response"; return false }
             if (obj.has("sys")) gotSys = true
@@ -97,6 +106,7 @@ object StatusStore {
             error.value = null
             true
         } catch (e: kotlinx.coroutines.CancellationException) { throw e }
-        catch (e: Exception) { error.value = e.message ?: "Status unavailable"; false }
+        catch (e: Exception) { if (generation == requestedGeneration) error.value = e.message ?: "Status unavailable"; false }
+        }
     }
 }

@@ -180,6 +180,7 @@ private fun Hysteria2Card(j: J) {
                 if (on) j.o.put("masquerade", "") else j.o.remove("masquerade")
             })
             if (j.has("masquerade")) MasqueradeEditor(j)
+            com.sonix21.suinode.ui.screens.shared.RealmFields(j, outbound = false)
         }
     }
 }

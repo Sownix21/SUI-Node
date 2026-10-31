@@ -54,6 +54,61 @@ class ApiV2ContractTest {
 
     @After fun stop() { session.client.logout(); server.stop(0); StatusStore.reset() }
 
+    @Test fun resetDuringStatusRequestCannotRepopulateOldPanelData() = runBlocking {
+        reply = {
+            StatusStore.reset()
+            envelope(jo("cpu" to 99, "sys" to jo("hostName" to "old-panel")))
+        }
+        assertFalse(StatusStore.poll(session))
+        assertNull(StatusStore.status.value)
+        assertTrue(StatusStore.history.value.isEmpty())
+    }
+
+    @Test fun realmAndCoreDebugRoundTripKeepWireTypesAndUnknownFields() = runBlocking {
+        session.load().getOrThrow()
+        val inbound = createDefaultInbound("hysteria2").put("tag", "realm-in").put("listen_port", 443)
+        Panel167.realm(inbound, true, false)
+        inbound.getJSONObject("realm").put("server_url", "https://realm.example").put("realm_id", "office")
+            .put("stun_servers", jarr(listOf("stun.example:19302"))).put("port_mapping", jo("enabled" to true, "timeout" to "10s"))
+        val outbound = createDefaultOutbound("hysteria2").put("tag", "realm-out")
+        Panel167.realm(outbound, true, true)
+        outbound.put("realm", inbound.getJSONObject("realm").deepCopy())
+        val service = ServiceConfig.create("hysteria-realm").put("tag", "rendezvous")
+            .put("users", jarr(listOf(jo("name" to "alice", "token" to "fixture-token", "max_realms" to 0))))
+        val config = session.data.value.config.deepCopy().put("experimental", jo("debug" to jo("gc_percent" to -1, "memory_limit" to "200mb", "future" to true)))
+        for ((collection, record) in listOf("inbounds" to inbound, "outbounds" to outbound, "services" to service, "config" to config)) {
+            reply = { envelope(jo(collection to if (collection == "config") record else jarr(listOf(record)))) }
+            session.save(collection, if (collection == "config") "set" else "new", record).getOrThrow()
+            val fields = requests.last().body.split('&').associate {
+                val parts = it.split('=', limit = 2)
+                URLDecoder.decode(parts[0], "UTF-8") to URLDecoder.decode(parts[1], "UTF-8")
+            }
+            assertEquals(collection, fields["object"])
+            assertEquals(JsonCanonical.text(record), JsonCanonical.text(JSONObject(requireNotNull(fields["data"]))))
+            assertEquals("/app/apiv2/save", requests.last().path)
+        }
+        assertEquals(-1, session.data.value.config.getJSONObject("experimental").getJSONObject("debug").getInt("gc_percent"))
+        assertEquals(0, session.data.value.services.single().getJSONArray("users").getJSONObject(0).getInt("max_realms"))
+    }
+
+    @Test fun remarkPrefixIsStringValuedAndUpdaterIsNotApiV2() = runBlocking {
+        reply = { envelope(jo("subRemarkPrefix" to "false")) }
+        val settings = requireNotNull(session.client.get("settings").objObj())
+        assertEquals("false", settings.getString("subRemarkPrefix"))
+        session.client.postForm("save", mapOf("object" to "settings", "action" to "set", "data" to settings.toString()))
+        assertTrue(URLDecoder.decode(requests.last().body, "UTF-8").contains("\"subRemarkPrefix\":\"false\""))
+        assertTrue(runCatching { session.client.postEmpty("update") }.isFailure)
+        assertEquals(2, requests.size)
+    }
+
+    @Test fun clientCertificateGeneratorUsesApiV2AndPreservesCommonNameQuery() = runBlocking {
+        reply = { jo("success" to true, "obj" to jarr(listOf("fixture"))).toString() }
+        session.client.get("keypairs", mapOf("k" to "tls-client", "o" to "alice & bob"))
+        assertEquals("/app/apiv2/keypairs", requests.single().path)
+        assertEquals("k=tls-client&o=alice & bob", URLDecoder.decode(requests.single().query, "UTF-8"))
+        assertEquals("contract-test-token", requests.single().token)
+    }
+
     @Test fun subscriptionHeadersRoundTripAsOneStringAndCanBeCleared() = runBlocking {
         val headers = "# public response\r\nannounce: سلام\r\nannounce-url: https://example.test:8443/?a=1&b=2\n// comment\nX-Test: a:b"
         reply = { envelope(jo("subCustomHeaders" to headers, "subClashUdp" to "true")) }

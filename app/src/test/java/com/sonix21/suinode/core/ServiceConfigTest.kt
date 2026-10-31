@@ -5,7 +5,7 @@ import org.junit.Test
 
 class ServiceConfigTest {
     @Test fun defaultsCoverLatestServices() {
-        assertEquals(7, ServiceConfig.types.size)
+        assertEquals(8, ServiceConfig.types.size)
         ServiceConfig.types.keys.forEach { assertEquals(it, ServiceConfig.create(it).getString("type")) }
         assertEquals(9090, ServiceConfig.create("api").getInt("listen_port"))
         assertEquals("127.0.0.1", ServiceConfig.create("api").getString("listen"))

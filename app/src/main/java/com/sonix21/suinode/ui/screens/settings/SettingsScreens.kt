@@ -67,6 +67,14 @@ fun CoreBasicsScreen(nav: NavController) {
 @Composable
 private fun ExperimentalSection(exp: J, outboundTags: List<String>) {
     GlassCard(contentPadding = 14.dp) { SectionHeader("Experimental"); Spacer(Modifier.height(8.dp)); Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        SwitchRow("Core debug options", exp.has("debug"), { if (it) exp["debug"] = JSONObject() else exp.remove("debug") })
+        if (exp.has("debug")) {
+            val d = exp.ensureObj("debug")
+            GlassTextField("pprof listen address", d.str("listen"), { d.setStr("listen", it) }, hint = "127.0.0.1:6060")
+            Text(UiLocale.text("Keep pprof on loopback; exposing it publicly can leak sensitive runtime data."), color = LocalGlass.current.warn)
+            GlassTextField("Memory limit", d.str("memory_limit"), { d.setStr("memory_limit", it) }, hint = "512MiB")
+            NumberField("GC percent", d.long("gc_percent").takeIf { d.has("gc_percent") }, onChange = { d["gc_percent"] = it }, allowNegative = true)
+        }
         SwitchRow("Cache file", exp.has("cache_file"), { if (it) exp["cache_file"] = jo("enabled" to true) else exp.remove("cache_file") })
         if (exp.has("cache_file")) { val c = exp.ensureObj("cache_file"); SwitchRow("Enabled", c.bool("enabled"), { c["enabled"] = it }); GlassTextField("Path", c.str("path"), { c.setStr("path",it) }); GlassTextField("Cache ID", c.str("cache_id"), { c.setStr("cache_id",it) }); SwitchRow("Store FakeIP", c.bool("store_fakeip"), { c.setBool("store_fakeip",it,true) }) }
         SwitchRow("Clash API", exp.has("clash_api"), { if (it) exp["clash_api"] = JSONObject() else exp.remove("clash_api") })
@@ -124,6 +132,8 @@ fun PanelSettingsScreen(nav: NavController) {
                         color = LocalGlass.current.textFaint)
                 }
             }
+            if (tab == 1 && j.has("subRemarkPrefix")) SwitchRow("Prefix node names with client remark",
+                j.str("subRemarkPrefix") == "true", { j["subRemarkPrefix"] = it.toString() })
             AdvancedJsonCard(o) { settings = it }
         }
     }

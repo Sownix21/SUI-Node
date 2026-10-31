@@ -101,7 +101,11 @@ fun ClientSideTab(j: J, session: PanelSession, type: String, typeVersion: Int) {
                 )
                 SwitchRow("UDP over stream", out.bool("udp_over_stream"), { out.setBool("udp_over_stream", it, onlyTrue = true) })
             }
-            if (type == "hysteria" || type == "hysteria2") {
+            if (type == "hysteria2" && j.has("realm")) {
+                val realm = out.ensureObj("realm")
+                GlassTextField("Client realm token override", realm.str("token"), { realm.setStr("token", it) }, obscure = true)
+            }
+            if (type == "hysteria" || (type == "hysteria2" && !j.has("realm"))) {
                 com.sonix21.suinode.ui.screens.shared.CsvField("Port hopping ranges", out.arr("server_ports")?.strListX() ?: emptyList(), { parts ->
                     if (parts.isEmpty()) out.remove("server_ports") else out.o.put("server_ports", jarr(parts))
                 }, hint = "2080:3000")

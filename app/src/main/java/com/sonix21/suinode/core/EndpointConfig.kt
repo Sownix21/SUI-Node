@@ -28,7 +28,7 @@ object EndpointConfig {
         if (mode == "static_key") {
             o.remove("data_ciphers"); o.remove("data_ciphers_fallback")
         } else o.remove("cipher")
-        if (mode == "static_key" && (o.optString("cipher").isBlank() || o.optString("cipher").contains("GCM", true)))
+        if (mode == "static_key" && o.optString("cipher") !in Panel167.staticCiphers)
             o.put("cipher", "AES-256-CBC")
     }
 
@@ -65,7 +65,7 @@ object EndpointConfig {
                 return "At least one local address is required"
             if (mode == "static_key") {
                 if (o.optString("static_key_path").isBlank()) return "Static key path is required"
-                if (!o.optString("cipher").endsWith("-CBC", true)) return "Static key mode requires a CBC cipher"
+                if (o.optString("cipher") !in Panel167.staticCiphers) return "Static key mode requires a supported CBC cipher or NONE"
                 if (type == "openvpn-client" && o.optString("peer_address").isBlank() && o.optString("peer_address_ipv6").isBlank())
                     return "Static key mode requires a peer address"
             }

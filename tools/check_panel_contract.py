@@ -55,6 +55,22 @@ def main():
             expected = set(re.findall(r":\s*'([^']+)'", capture(rf"export const {ts_name} = \{{(.*?)\}}", ts)))
             actual = set(re.findall(r'"([^"\n]+)"', capture(rf"val {kt_name} = listOf\((.*?)\)", kt)))
             compare(f"Frontend {name} types", expected, actual)
+        for filename, registry, kotlin_file in (
+            ("services", "SrvTypes", "ServiceConfig.kt"),
+            ("endpoints", "EpTypes", "EndpointConfig.kt"),
+        ):
+            ts = (args.frontend / f"src/types/{filename}.ts").read_text(encoding="utf-8")
+            kt = (kotlin / "core" / kotlin_file).read_text(encoding="utf-8")
+            expected = set(re.findall(r":\s*'([^']+)'", capture(rf"export const {registry} = \{{(.*?)\}}", ts)))
+            actual = set(re.findall(r'"([^"\n]+)"\s+to\s+"', capture(r"val types = linkedMapOf\((.*?)\)", kt)))
+            compare(f"Frontend {filename} types", expected, actual)
+        vpn = (args.frontend / "src/components/protocols/OpenVpn.vue").read_text(encoding="utf-8")
+        options = (kotlin / "core/Panel167.kt").read_text(encoding="utf-8")
+        for name in ("cbcCiphers", "staticCiphers", "tlsCiphers", "digests"):
+            # Compare literal additions separately: static/TLS lists expand the same CBC base.
+            expected = set(re.findall(r"'([^']+)'", capture(rf"const {name} = \[(.*?)\]", vpn)))
+            actual = set(re.findall(r'"([^"\n]+)"', capture(rf"val {name} = ([^\n]+)", options)))
+            compare(f"OpenVPN {name}", expected, actual)
     print("Backend version:", (args.backend / "config/version").read_text().strip())
     print("Registry parity only; run HTTP fixture tests and controlled device tests too.")
 
