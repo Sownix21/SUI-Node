@@ -30,6 +30,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -56,6 +58,7 @@ fun InboundsScreen(nav: NavController) {
     val runner = rememberRunner()
     var deleteTag by remember { mutableStateOf<String?>(null) }
     var cloneId by remember { mutableStateOf<Long?>(null) }
+    var pendingToggle by remember { mutableStateOf<Pair<Long, Boolean>?>(null) }
 
     val onlines = data.onlines.inbound.toSet()
 
@@ -80,7 +83,7 @@ fun InboundsScreen(nav: NavController) {
             val tag = i.optString("tag")
             GlassCard(Modifier.fillMaxWidth(), contentPadding = 18.dp) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (tag in onlines) StatusDot(g.green, 8.dp)
+                    if (Panel168.inboundEnabled(i) && tag in onlines) StatusDot(g.green, 8.dp)
                     Column(Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                             Text(tag, modifier = Modifier.weight(1f), color = g.text, fontWeight = FontWeight.Medium, fontSize = 17.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -95,7 +98,15 @@ fun InboundsScreen(nav: NavController) {
                             if (users >= 0) append("  ·  $users user${if (users == 1) "" else "s"}")
                         }
                         Text(sub2, color = g.textFaint, fontSize = 11.5.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        if (!Panel168.inboundEnabled(i)) Text("Disabled", color = g.warn, fontSize = 11.sp)
                     }
+                    // Older panels do not expose this field and cannot apply the switch.
+                    if (i.opt("enable") is Boolean) Switch(
+                        checked = Panel168.inboundEnabled(i),
+                        onCheckedChange = { pendingToggle = i.optLongOr("id") to it },
+                        enabled = !runner.busy,
+                        modifier = Modifier.semantics { contentDescription = "Enable inbound $tag" },
+                    )
                 }
                 Spacer(Modifier.height(10.dp))
                 Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -111,6 +122,20 @@ fun InboundsScreen(nav: NavController) {
                 }
             }
         }
+    }
+
+    pendingToggle?.let { (id, enable) ->
+        ConfirmDialog(if (enable) "Enable inbound" else "Disable inbound",
+            if (enable) "Start this inbound and include it in client subscriptions?"
+            else "Stop this inbound and omit it from subscriptions? Client assignments are kept.",
+            confirmText = if (enable) "Enable" else "Disable", danger = !enable,
+            onConfirm = { runner.go {
+                val full = session.fetchRecord("inbounds", id)
+                require(full.opt("enable") is Boolean) { "This panel does not support inbound enable/disable" }
+                full.put("enable", enable)
+                session.save("inbounds", "edit", full).getOrThrow()
+                ToastBus.show(if (enable) "Inbound enabled" else "Inbound disabled")
+            } }, onDismiss = { pendingToggle = null })
     }
 
     cloneId?.let { id ->

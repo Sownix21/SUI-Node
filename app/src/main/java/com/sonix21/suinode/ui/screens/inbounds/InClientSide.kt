@@ -51,7 +51,7 @@ fun ClientSideTab(j: J, session: PanelSession, type: String, typeVersion: Int) {
     val out = j.ensureObj("out_json")
     val dnsTags = remember2(session)
 
-    GlassCard(contentPadding = 14.dp) {
+    if (type != "snell") GlassCard(contentPadding = 14.dp) {
         SectionHeader("Client basics")
         Spacer(Modifier.height(8.dp))
         Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -183,11 +183,13 @@ private fun MultiDomainEditor(j: J, session: PanelSession) {
                         if (aj.has("remark")) {
                             GlassTextField("Remark value", aj.str("remark"), { v -> aj.setStr("remark", v, blankRemoves = false) })
                         }
-                        SwitchRow("TLS", aj.has("tls"), { on ->
-                            if (on) aj.o.put("tls", jo("enabled" to true)) else aj.o.remove("tls")
-                        })
-                        if (typeSupportsTls(j.str("type")) && aj.has("tls")) {
-                            OutTlsMini(J(aj.o.optJSONObject("tls")!!))
+                        if (typeSupportsTls(j.str("type"))) {
+                            SwitchRow("TLS", aj.obj("tls") != null, { on ->
+                                if (on) aj.o.put("tls", jo("enabled" to true)) else aj.o.remove("tls")
+                            })
+                            aj.obj("tls")?.let { tls ->
+                                com.sonix21.suinode.ui.screens.shared.OutTlsEditor(tls)
+                            }
                         }
                     }
                 }
@@ -198,16 +200,3 @@ private fun MultiDomainEditor(j: J, session: PanelSession) {
 
 private fun typeSupportsTls(type: String) =
     type in setOf("http", "vmess", "trojan", "naive", "hysteria", "tuic", "hysteria2", "vless", "anytls")
-
-/** Minimal client TLS editor for addr entries (enabled/insecure/server_name/alpn). */
-@Composable
-private fun OutTlsMini(t: J) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SwitchRow("Enabled", t.bool("enabled"), { t.o.put("enabled", it) })
-        SwitchRow("Insecure (skip verify)", t.bool("insecure"), { t.setBool("insecure", it, onlyTrue = true) })
-        GlassTextField("SNI", t.str("server_name"), { v -> t.setStr("server_name", v) })
-        com.sonix21.suinode.ui.screens.shared.CsvField("ALPN", t.arr("alpn")?.strListX() ?: emptyList(), { parts ->
-            if (parts.isEmpty()) t.remove("alpn") else t.o.put("alpn", jarr(parts))
-        }, hint = "h3,h2,http/1.1")
-    }
-}

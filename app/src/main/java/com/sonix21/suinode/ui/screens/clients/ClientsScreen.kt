@@ -254,6 +254,8 @@ private fun ClientRow(
                 modifier = Modifier.semantics { contentDescription = "Enable " + c.optString("name") })
         }
         Spacer(Modifier.height(14.dp))
+        Text(UiLocale.text("Last online") + ": " + UiLocale.text(Panel168.lastOnline(c)),
+            color = g.textFaint, fontSize = 11.sp, modifier = Modifier.padding(bottom = 8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(Fmt.size(usage) + if (volume > 0) " / " + Fmt.size(volume) else " / Unlimited",
                 color = g.textDim, fontSize = 11.sp)

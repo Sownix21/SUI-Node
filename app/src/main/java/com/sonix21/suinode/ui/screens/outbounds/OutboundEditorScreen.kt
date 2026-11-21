@@ -418,15 +418,7 @@ private fun OutProtocolFields(j: J, type: String) {
             NumberField("Download", j.long("down_mbps").takeIf { it > 0 }, suffix = "Mbps",
                 onChange = { j.setLong("down_mbps", it) }, modifier = Modifier.weight(1f))
         }
-        SwitchRow("Obfuscation", j.has("obfs"), { on ->
-            if (on) j.o.put("obfs", jo("type" to "salamander", "password" to "")) else j.o.remove("obfs")
-        })
-        if (j.has("obfs")) {
-            val ob = j.ensureObj("obfs")
-            GlassTextField("Obfuscated password", ob.str("password"), { v ->
-                if (v.isBlank()) ob.o.remove("password") else ob.o.put("password", v)
-            })
-        }
+        com.sonix21.suinode.ui.screens.shared.Hysteria2ObfsFields(j)
         com.sonix21.suinode.ui.screens.shared.RealmFields(j, outbound = true)
         if (!j.has("realm")) {
             SwitchRow("Port hopping", j.has("server_ports"), {

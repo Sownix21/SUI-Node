@@ -5,6 +5,20 @@ import com.sonix21.suinode.APP
 /** Lightweight runtime localization for the Compose-first UI. */
 object UiLocale {
     private val fa = mapOf(
+        "Last online" to "آخرین اتصال",
+        "Not recorded" to "ثبت نشده",
+        "Enable inbound" to "فعال‌کردن ورودی",
+        "Disable inbound" to "غیرفعال‌کردن ورودی",
+        "Obfuscation type" to "نوع مبهم‌سازی",
+        "Minimum packet size" to "حداقل اندازهٔ بسته",
+        "Maximum packet size" to "حداکثر اندازهٔ بسته",
+        "Happ format" to "قالب Happ",
+        "Happ import" to "افزودن به Happ",
+        "ECH public name" to "نام عمومی ECH",
+        "Use key file path" to "استفاده از مسیر فایل کلید",
+        "Unused while an ECH config is provided." to "تا وقتی پیکربندی ECH وارد شده است، این گزینه استفاده نمی‌شود.",
+        "Choose the public outer SNI embedded in the ECH config. Do not use the private server name you want to hide. This is separate from the DNS query server name." to "نام عمومی SNI بیرونی را برای درج در پیکربندی ECH انتخاب کنید؛ نام خصوصی سروری را که می‌خواهید پنهان بماند وارد نکنید. این نام با نام مورد استفاده برای جست‌وجوی DNS متفاوت است.",
+        "The default subscription automatically selects a format for supported client apps on s-ui 1.6.8+. Happ omits HTTP/HTTPS proxies." to "در پنل ۱.۶.۸ و جدیدتر، قالب اشتراک پیش‌فرض بر اساس برنامهٔ دریافت‌کننده انتخاب می‌شود. اشتراک Happ شامل پراکسی‌های HTTP و HTTPS نیست.",
         "Hysteria2 realm (NAT traversal)" to "قلمرو Hysteria2 (عبور از NAT)",
         "Realm server URL" to "نشانی سرور قلمرو",
         "Realm ID" to "شناسهٔ قلمرو",

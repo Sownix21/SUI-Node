@@ -7,7 +7,7 @@ Gradle wrapper. Configure the SDK in Android Studio or untracked `local.properti
 Build the release with `./gradlew assembleRelease bundleRelease` (Windows: `gradlew.bat`).
 Initial dependency downloads need internet access. CI retains regression tests and lint.
 
-Application ID: `com.sonix21.suinode`. Version: **2.5.0 (10)**. Release builds enable
+Application ID: `com.sonix21.suinode`. Version: **2.6.0 (11)**. Release builds enable
 code minification and resource shrinking. Production signing material is not included.
 
 ## Signing

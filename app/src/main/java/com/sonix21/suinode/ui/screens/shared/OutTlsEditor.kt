@@ -140,10 +140,13 @@ fun OutTlsEditor(holder: J, title: String = "TLS", server: String? = null, serve
             if (hasEch) {
                 val e = holder.ensureObj("ech")
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    CsvField("ECH configs", e.arr("config")?.strListX() ?: emptyList(), { parts ->
-                        if (parts.isEmpty()) e.remove("config") else e.o.put("config", jarr(parts))
-                    }, hint = "paste config lines")
-                    GlassTextField("Query server name", e.str("query_server_name"), { v -> e.setStr("query_server_name", v) })
+                    GlassTextField("ECH configs", e.strs("config").joinToString("\n"), { text ->
+                        e.setStrs("config", if (text.isBlank()) emptyList() else text.lines())
+                        e.remove("config_path")
+                    }, hint = "paste config lines", singleLine = false, minLines = 3)
+                    GlassTextField("Query server name", e.str("query_server_name"), { v -> e.setStr("query_server_name", v) },
+                        enabled = !Panel168.hasEchConfig(e.o),
+                        supporting = if (Panel168.hasEchConfig(e.o)) "Unused while an ECH config is provided." else null)
                 }
             }
 

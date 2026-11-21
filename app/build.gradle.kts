@@ -36,8 +36,8 @@ android {
     applicationId = "com.sonix21.suinode"
     minSdk = 26
     targetSdk = 36
-    versionCode = 10
-    versionName = "2.5.0"
+    versionCode = 12
+    versionName = "2.6.1"
   }
 
   signingConfigs {

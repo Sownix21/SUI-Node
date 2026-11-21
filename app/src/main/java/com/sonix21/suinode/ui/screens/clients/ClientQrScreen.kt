@@ -82,9 +82,9 @@ fun ClientQrScreen(nav: NavController, id: Long) {
                 val subUri = session.data.collectAsState().value.subURI.trimEnd('/')
                 val name = c.optString("name")
                 val subs = listOf(
-                    "Subscription" to "$subUri/$name",
-                    "JSON format" to "$subUri/$name?format=json",
-                    "Clash format" to "$subUri/$name?format=clash",
+                    "Subscription" to Panel168.subscriptionUrl(subUri, name),
+                    "JSON format" to Panel168.subscriptionUrl(subUri, name, "json"),
+                    "Clash format" to Panel168.subscriptionUrl(subUri, name, "clash"),
                 )
                 Column(
                     Modifier.scrollableColumn(),
@@ -93,24 +93,28 @@ fun ClientQrScreen(nav: NavController, id: Long) {
                     subs.forEach { (label, url) ->
                         GlassCard(contentPadding = 12.dp, onClick = { copy(url) }) {
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(label, color = g.violet, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                Text(UiLocale.text(label), color = g.violet, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                                 Spacer(Modifier.weight(1f))
                                 IconGhostButton(Icons.Filled.ContentCopy, { copy(url) }, contentDesc = "copy")
                             }
                             QrImage(url, 230.dp, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
                         }
                     }
-                    // sing-box deep link (scan only)
+                    // App import deep links are scan-only; ordinary subscription URLs above remain copyable.
                     val deepLink = "sing-box://import-remote-profile?url=" +
-                        java.net.URLEncoder.encode("$subUri/$name?format=json", "UTF-8") + "#" + name
-                    GlassCard(contentPadding = 12.dp) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("SING-BOX import", color = g.teal, fontWeight = FontWeight.Bold, fontSize = 13.sp)
-                            Spacer(Modifier.weight(1f))
+                        java.net.URLEncoder.encode(Panel168.subscriptionUrl(subUri, name, "json"), "UTF-8") + "#" +
+                        java.net.URLEncoder.encode(name, "UTF-8").replace("+", "%20")
+                    listOf("Happ import" to Panel168.happImport(subUri, name), "SING-BOX import" to deepLink)
+                        .forEach { (label, uri) ->
+                            GlassCard(contentPadding = 12.dp) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(UiLocale.text(label), color = g.teal, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                                    Spacer(Modifier.weight(1f))
+                                }
+                                QrImage(uri, 230.dp, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
+                                Text("scan only — not a copyable URL", color = g.textFaint, fontSize = 10.5.sp)
+                            }
                         }
-                        QrImage(deepLink, 230.dp, Modifier.align(Alignment.CenterHorizontally).padding(top = 8.dp))
-                        Text("scan only — not a copyable URL", color = g.textFaint, fontSize = 10.5.sp)
-                    }
                 }
             } else {
                 val links = c.optJSONArray("links") ?: org.json.JSONArray()

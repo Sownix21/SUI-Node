@@ -68,19 +68,33 @@ No separate port-stripping feature is needed.
 
 ## Compatibility and limits
 
-Version 2.5.0 targets the supplied **s-ui 1.6.7** backend and frontend, using APIv2 only.
+Version 2.6.0 targets the supplied **s-ui 1.6.8** backend and frontend, using APIv2 only.
 
 | Reference | Scope |
 | --- | --- |
-| Local backend snapshot | 1.6.7, with sing-box 1.14.4 declared in its module; not shipped in this Android repository |
-| Frontend | `f473aeba368de6581cad70412c098ed98370cbcc` / 1.6.7 |
+| Local backend snapshot | 1.6.8, with sing-box 1.14.4 declared in its module; not shipped in this Android repository |
+| Frontend | `461ec847b354d9c98ba80f2c74adc83eee3abade` / 1.6.8 |
 | Earlier panels | Existing APIv2 features remain available; 1.6.3-only actions report an error when unsupported |
 | Later releases | Require a fresh contract/form review; not automatically certified |
 
-See [what changed in 2.5.0](docs/CHANGES-2.5.0.md), the [1.6.7 compatibility notes](docs/PANEL-1.6.7.md),
+See [what changed in 2.6.0](docs/CHANGES-2.6.0.md), the [1.6.8 compatibility notes](docs/PANEL-1.6.8.md),
 and [APIv2 documentation](https://github.com/alireza0/s-ui/wiki/API-Documentation).
 
 ### Protocol families
+
+**New in 2.6.0:** enable or disable individual inbounds without deleting their client
+assignments; configure Hysteria2 Gecko obfuscation with conditional packet sizes; edit
+Snell client-side dial options and extra addresses; share Happ subscriptions/import QR
+codes; and view the linked sing-box version. Client cards and details now show the
+panel's **last online** timestamp (local time), or “Not recorded” when unavailable.
+This timestamp is the last traffic activity recorded by the panel, not a precise session-start time.
+
+The default subscription URL lets s-ui 1.6.8 detect supported apps from their User-Agent.
+Explicit JSON, Clash and Happ formats remain available. Happ imports omit HTTP/HTTPS
+proxies and use its SOCKS scheme; the panel performs that conversion. Proxy links,
+ECH, Gecko and per-address TLS settings are retained without local link rewriting.
+ECH generation asks for a **public outer SNI**, separate from the private server name;
+DNS query-name input is disabled while an explicit ECH config is present.
 
 Inbound editors include direct, mixed, SOCKS, HTTP, Shadowsocks, Snell, VMess, Trojan,
 Naive, Hysteria, ShadowTLS, TUIC, Hysteria2, VLESS, AnyTLS, TUN, redirect, TProxy and
@@ -114,7 +128,7 @@ conditional optional fields. Existing unlisted values are retained until explici
 enabled. Keep pprof on loopback: exposing it publicly may leak sensitive runtime data.
 These are server configuration options, not an Android debugging mode.
 
-The panel's release-check/update operations are **not available through APIv2** in 1.6.7.
+The panel's release-check/update operations are **not available through APIv2** in 1.6.8.
 Use its web interface for panel upgrades; the app does not bypass this with legacy API calls.
 
 **Custom subscription response headers** appear under Panel settings → Subscription

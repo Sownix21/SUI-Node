@@ -164,16 +164,7 @@ private fun Hysteria2Card(j: J) {
                         onChange = { j.setLong("down_mbps", it) }, modifier = Modifier.weight(1f))
                 }
             }
-            SwitchRow("Obfuscation", j.has("obfs"), { on ->
-                if (on) j.o.put("obfs", jo("type" to "salamander", "password" to ""))
-                else j.o.remove("obfs")
-            })
-            if (j.has("obfs")) {
-                val obfs = j.ensureObj("obfs")
-                GlassTextField("Obfuscated password", obfs.str("password"), { v ->
-                    if (v.isBlank()) obfs.o.remove("password") else obfs.o.put("password", v)
-                })
-            }
+            com.sonix21.suinode.ui.screens.shared.Hysteria2ObfsFields(j)
 
             // masquerade: string (simple) or object {type,...}
             SwitchRow("Masquerade", j.has("masquerade"), { on ->

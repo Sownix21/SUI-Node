@@ -54,6 +54,82 @@ class ApiV2ContractTest {
 
     @After fun stop() { session.client.logout(); server.stop(0); StatusStore.reset() }
 
+    @Test fun inboundToggleFetchesFullRecordAndSavesBooleanWithoutLosingSettings() = runBlocking {
+        session.load().getOrThrow()
+        val full = jo("id" to 3, "tag" to "edge", "type" to "hysteria2", "enable" to true,
+            "tls_id" to 2, "listen_port" to 443, "future" to jo("keep" to true),
+            "obfs" to jo("type" to "gecko", "password" to "fixture", "min_packet_size" to 600, "max_packet_size" to 1300),
+            "addrs" to jarr(listOf(jo("server" to "edge.example", "tls" to jo("enabled" to false)))),
+            "out_json" to jo("dial" to "keep"))
+        for (enable in listOf(false, true)) {
+            reply = { envelope(jo("inbounds" to jarr(listOf(full)))) }
+            val record = session.fetchRecord("inbounds", 3)
+            assertEquals("/app/apiv2/inbounds", requests.last().path)
+            assertEquals("id=3", requests.last().query)
+            record.put("enable", enable)
+            reply = { envelope(jo("inbounds" to jarr(listOf(record)))) }
+            session.save("inbounds", "edit", record).getOrThrow()
+            val encoded = requests.last().body.split('&').first { it.startsWith("data=") }.substringAfter('=')
+            val sent = JSONObject(URLDecoder.decode(encoded, "UTF-8"))
+            assertEquals(JsonCanonical.text(record), JsonCanonical.text(sent))
+            assertEquals(enable, sent.get("enable"))
+            assertEquals(enable, session.data.value.inbounds.single().get("enable"))
+        }
+    }
+
+    @Test fun clientLastOnlineAndMultipleInboundIdsSurviveLoadFetchAndSave() = runBlocking {
+        val record = snapshot().getJSONArray("clients").getJSONObject(0)
+            .put("onlineAt", 1795000000L).put("inbounds", jarr(listOf(3, 4, 5)))
+        reply = { envelope(snapshot().put("clients", jarr(listOf(record)))) }
+        session.load().getOrThrow()
+        assertEquals(1795000000L, session.data.value.clients.single().getLong("onlineAt"))
+        reply = { envelope(jo("clients" to jarr(listOf(record)))) }
+        val full = session.fetchRecord("clients", 7)
+        assertEquals(Fmt.dateTime(1795000000L), Panel168.lastOnline(full))
+        full.put("desc", "updated")
+        session.save("clients", "edit", full).getOrThrow()
+        val encoded = requests.last().body.split('&').first { it.startsWith("data=") }.substringAfter('=')
+        val sent = JSONObject(URLDecoder.decode(encoded, "UTF-8"))
+        assertEquals(listOf(3L, 4L, 5L), sent.getJSONArray("inbounds").longList())
+    }
+
+    @Test fun echGeneratorPassesExplicitPublicNameViaTokenApiV2() = runBlocking {
+        reply = { jo("success" to true, "obj" to jarr(emptyList<String>())).toString() }
+        session.client.get("keypairs", mapOf("k" to "ech", "o" to "public.example"))
+        assertEquals("/app/apiv2/keypairs", requests.single().path)
+        assertEquals("k=ech&o=public.example", requests.single().query)
+        assertEquals("contract-test-token", requests.single().token)
+    }
+
+    @Test fun snellClientAddressesAndWireguardZeroPortKeepTheirWireTypes() = runBlocking {
+        session.load().getOrThrow()
+        val snell = createDefaultInbound("snell").put("id", 3).put("tag", "snell-edge")
+            .put("out_json", jo("bind_interface" to "eth0", "future" to true))
+            .put("addrs", jarr(listOf(jo("server" to "one.example", "server_port" to 443),
+                jo("server" to "two.example", "server_port" to 8443, "remark" to "Second"))))
+        val wireguard = jo("id" to 4, "type" to "wireguard", "tag" to "wg", "listen_port" to 0)
+        for ((collection, record) in listOf("inbounds" to snell, "endpoints" to wireguard)) {
+            reply = { envelope(jo(collection to jarr(listOf(record)))) }
+            session.save(collection, "edit", record).getOrThrow()
+            val encoded = requests.last().body.split('&').first { it.startsWith("data=") }.substringAfter('=')
+            val sent = JSONObject(URLDecoder.decode(encoded, "UTF-8"))
+            assertEquals(JsonCanonical.text(record), JsonCanonical.text(sent))
+        }
+        assertEquals(0, session.data.value.endpoints.single().getInt("listen_port"))
+        assertEquals(2, session.data.value.inbounds.single().getJSONArray("addrs").length())
+    }
+
+    @Test fun proxyAndEchLinksFromPanelRemainOpaque() = runBlocking {
+        val uris = listOf("http://alice:pass@edge.example:80#HTTP", "https://alice:pass@edge.example:443#HTTPS",
+            "socks5://alice:pass@edge.example:1080", "socks://YWxpY2U6cGFzcw@edge.example:1080",
+            "hysteria2://pass@edge.example:443?obfs=gecko&obfs-password=secret",
+            "vless://id@edge.example:443?ech=config&encryption=keep")
+        val full = jo("id" to 7, "name" to "alice", "links" to jarr(uris.map { jo("uri" to it) }))
+        reply = { envelope(jo("clients" to jarr(listOf(full)))) }
+        val links = session.fetchRecord("clients", 7).getJSONArray("links")
+        assertEquals(uris, (0 until links.length()).map { links.getJSONObject(it).getString("uri") })
+    }
+
     @Test fun resetDuringStatusRequestCannotRepopulateOldPanelData() = runBlocking {
         reply = {
             StatusStore.reset()
@@ -488,12 +564,13 @@ class ApiV2ContractTest {
         var first = true
         reply = {
             val obj = jo("cpu" to 23.5, "mem" to jo("current" to 1024, "total" to 4096), "db" to jo("clients" to 1))
-            if (first) { obj.put("sys", jo("hostName" to "test-server")); first = false }
+            if (first) { obj.put("sys", jo("hostName" to "test-server", "coreVersion" to "1.14.4")); first = false }
             envelope(obj)
         }
         assertTrue(StatusStore.poll(session))
         assertTrue(StatusStore.poll(session))
         assertEquals("test-server", StatusStore.status.value!!.getJSONObject("sys").getString("hostName"))
+        assertEquals("1.14.4", StatusStore.status.value!!.getJSONObject("sys").getString("coreVersion"))
         assertEquals(23.5f, StatusStore.history.value["h-cpu"]!!.last(), 0.01f)
         assertTrue(URLDecoder.decode(requests.last().query, "UTF-8").contains("db"))
     }

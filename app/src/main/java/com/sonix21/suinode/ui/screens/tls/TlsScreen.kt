@@ -362,8 +362,13 @@ private fun CertSection(server: J) {
 
 @Composable
 private fun PemArea(holder: J, key: String, label: String) {
-    var text by remember(key) {
-        mutableStateOf((holder.arr(key)?.let { a -> (0 until a.length()).mapNotNull { x -> a.optString(x).takeIf(String::isNotEmpty) } } ?: emptyList()).joinToString("\n"))
+    val stored = holder.strs(key).joinToString("\n")
+    var text by remember(holder.o, key) { mutableStateOf(stored) }
+    LaunchedEffect(holder.o, key, stored) {
+        // Generated material must replace the displayed draft, while typing blank
+        // lines must not lose the cursor or immediately collapse the new line.
+        val normalized = text.lines().map { it.trimEnd('\r') }.filter { it.isNotBlank() }.joinToString("\n")
+        if (normalized != stored) text = stored
     }
     GlassTextField(label, text, { t ->
         text = t
@@ -432,7 +437,9 @@ private fun RealitySection(server: J, client: J, session: com.sonix21.suinode.da
 private fun EchSection(server: J, client: J) {
     val session = useSession()
     val runner = rememberRunner()
-    val enabled = server.has("ech")
+    val enabled = server.obj("ech")?.bool("enabled") == true
+    var showGenerator by remember { mutableStateOf(false) }
+    var publicName by remember { mutableStateOf("") }
 
     GlassCard(contentPadding = 14.dp) {
         SectionHeader("ECH") {
@@ -450,27 +457,49 @@ private fun EchSection(server: J, client: J) {
             val cech = client.ensureObj("ech")
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    com.sonix21.suinode.ui.glass.GhostButton("Generate keys") {
-                        runner.go {
-                            val sni = server.str("server_name").ifBlank { "\'\'" }
-                            val env = session.client.get("keypairs", mapOf("k" to "ech", "o" to sni))
-                            if (!env.success) throw Exception(env.msg)
-                            val lines = env.objStrList()
-                            val configs = extractBlock(lines, "ECH CONFIGS")
-                            val keys = extractBlock(lines, "ECH KEYS")
-                            if (keys.isNotEmpty()) sech.o.put("key", jarr(keys))
-                            if (configs.isNotEmpty()) cech.o.put("config", jarr(configs))
-                            ToastBus.show("ECH material generated")
-                        }
-                    }
+                    com.sonix21.suinode.ui.glass.GhostButton("Generate keys") { showGenerator = true }
                 }
-                PemArea(sech, "key", "ECH keys PEM (server)")
+                SwitchRow("Use key file path", sech.has("key_path"), { path ->
+                    if (path) { sech.remove("key"); sech["key_path"] = "" }
+                    else { sech.remove("key_path"); sech["key"] = org.json.JSONArray() }
+                })
+                if (sech.has("key_path")) GlassTextField("Key path", sech.str("key_path"),
+                    { sech.setStr("key_path", it, blankRemoves = false) })
+                else PemArea(sech, "key", "ECH keys PEM (server)")
                 PemArea(cech, "config", "ECH configs PEM (client)")
                 GlassTextField("Query server name", cech.str("query_server_name"),
-                    { v -> cech.setStr("query_server_name", v) }, hint = "ech.example.com")
+                    { v -> cech.setStr("query_server_name", v) }, hint = "ech.example.com",
+                    enabled = !Panel168.hasEchConfig(cech.o),
+                    supporting = if (Panel168.hasEchConfig(cech.o)) "Unused while an ECH config is provided." else null)
             }
         }
     }
+    if (showGenerator && enabled) AlertDialog(
+        onDismissRequest = { if (!runner.busy) showGenerator = false },
+        title = { Text(UiLocale.text("ECH public name")) },
+        text = {
+            Column(Modifier.heightIn(max = 320.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(UiLocale.text("Choose the public outer SNI embedded in the ECH config. Do not use the private server name you want to hide. This is separate from the DNS query server name."))
+                GlassTextField("ECH public name", publicName, { publicName = it }, hint = "public.example.com", enabled = !runner.busy)
+                runner.error?.let { Text(it, color = LocalGlass.current.err) }
+            }
+        },
+        confirmButton = { TextButton(enabled = !runner.busy && publicName.trim().isNotEmpty(), onClick = {
+            runner.go {
+                val env = session.client.get("keypairs", mapOf("k" to "ech", "o" to publicName.trim()))
+                if (!env.success) throw Exception(env.msg)
+                // The user may have left this editor while the request was running.
+                if (server.obj("ech")?.bool("enabled") == true) {
+                    Panel168.applyEch(server.ensureObj("ech").o, client.ensureObj("ech").o, env.objStrList())
+                    JsonEditSignal.bump()
+                    showGenerator = false
+                    ToastBus.show("ECH material generated")
+                }
+            }
+        }) { Text(if (runner.busy) "Generating…" else "Generate") } },
+        dismissButton = { TextButton(enabled = !runner.busy, onClick = { showGenerator = false }) { Text("Cancel") } },
+    )
 }
 
 private fun extractBlock(lines: List<String>, block: String): List<String> {

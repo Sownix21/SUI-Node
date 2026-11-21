@@ -65,7 +65,7 @@ val IN_TYPES = listOf(
     "cloudflared",
 )
 
-private val HAS_TABS = setOf("socks", "http", "mixed", "shadowsocks", "vmess", "shadowtls", "trojan", "hysteria", "vless", "anytls", "tuic", "hysteria2", "naive")
+private val HAS_TABS = setOf("socks", "http", "mixed", "shadowsocks", "snell", "vmess", "shadowtls", "trojan", "hysteria", "vless", "anytls", "tuic", "hysteria2", "naive")
 private val HAS_USERS = setOf("mixed", "socks", "http", "shadowsocks", "snell", "vmess", "trojan", "naive", "hysteria", "shadowtls", "tuic", "hysteria2", "vless", "anytls")
 val IN_HAS_TLS = setOf("http", "vmess", "trojan", "naive", "hysteria", "tuic", "hysteria2", "vless", "anytls")
 private val ONLY_TLS = setOf("hysteria", "hysteria2", "tuic", "naive", "anytls")
@@ -157,6 +157,7 @@ fun InboundEditorScreen(nav: NavController, id: Long) {
         val prevListen = o.optStringOrNull("listen") ?: "::"
         val prevPort = o.optLongOr("listen_port")
         val fresh = createDefaultInbound(newType)
+        if (o.has("enable")) fresh.put("enable", Panel168.inboundEnabled(o))
         fresh.put("id", prevId); fresh.put("tag", keepTag)
         if (!noListen) { fresh.put("listen", prevListen); fresh.put("listen_port", prevPort) }
         if (newType in HAS_ADDR) { fresh.put("addrs", JSONArray()); fresh.put("out_json", JSONObject()) }
@@ -218,6 +219,7 @@ fun InboundEditorScreen(nav: NavController, id: Long) {
                             clearable = false,
                         )
                         GlassTextField("Tag", j.str("tag"), { v -> j.setStr("tag", v, blankRemoves = false) })
+                        if (o.opt("enable") is Boolean) SwitchRow("Enabled", Panel168.inboundEnabled(o), { o.put("enable", it) })
                     }
                 }
 

@@ -159,6 +159,7 @@ fun DashboardScreen(nav: NavController) {
                 InfoRow("Host", sys.optStringOrNull("hostName") ?: "—")
                 InfoRow("CPU", "${sys.optIntOr("cpuCount")} cores · ${sys.optStringOrNull("cpuType") ?: "—"}")
                 InfoRow("S-UI", sys.optStringOrNull("appVersion") ?: "—")
+                InfoRow("sing-box", sys.optStringOrNull("coreVersion")?.takeIf { it.isNotBlank() } ?: "—")
                 for (key in listOf("ipv4", "ipv6")) sys.optJSONArray(key)?.let { a ->
                     if (a.length() > 0) InfoRow(key.uppercase(), (0 until a.length()).joinToString(", ") { a.optString(it) })
                 }

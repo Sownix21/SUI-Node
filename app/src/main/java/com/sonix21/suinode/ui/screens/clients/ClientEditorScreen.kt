@@ -346,6 +346,8 @@ private fun BasicsTab(j: J, id: Long, volumeText: String, onVolumeChange: (Strin
                 }, tint = g.orange, contentDesc = "reset usage")
             }
             Spacer(Modifier.height(6.dp))
+            Text(UiLocale.text("Last online") + ": " + UiLocale.text(Panel168.lastOnline(j.o)),
+                color = g.textFaint, fontSize = 11.5.sp)
             Text("${Fmt.size(usage)} / ${if (volume == 0L) "∞" else Fmt.size(volume)}", color = g.text, fontSize = 13.sp, fontWeight = FontWeight.Bold)
             LinearProgressIndicator(
                 progress = { pct / 100f },

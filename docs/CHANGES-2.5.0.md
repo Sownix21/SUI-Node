@@ -23,3 +23,7 @@ conversion remain panel/core responsibilities. Install the updated panel to get 
 See [compatibility](PANEL-1.6.7.md) and [verification](VERIFICATION.md). This update is
 validated without APK/AAB generation or live-panel writes; owner signing and runtime
 acceptance remain separate.
+
+Verification: **163 tests passed**; release compilation, resource processing and R8
+optimization succeeded. Lint reports **0 errors** and two existing dependency-version
+advisories per variant. No APK/AAB packaging or signing task was run.
